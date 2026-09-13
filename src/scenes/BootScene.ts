@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { makeExpansionArt } from './ExpansionArt';
 
 /**
  * Every texture in the game is drawn here in code — no image files, no asset
@@ -25,6 +26,7 @@ export class BootScene extends Phaser.Scene {
     this.makeIcicle();
     this.makeFlags();
     this.makeBits();
+    makeExpansionArt(this);
 
     this.scene.start('Menu');
   }
