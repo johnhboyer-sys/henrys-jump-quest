@@ -134,7 +134,9 @@ export function availableSkins(save: SaveData, levelId?: number): SkinId[] {
   if (save.ownedSkins.includes('galacticRaider') || (levelId === 5 && save.clearedLevel >= 5)) {
     list.push('galacticRaider');
   }
-  if (save.ownedSkins.includes('godTom')) list.push('godTom');
+  // Henry: God Tom is free once you beat the game, so he unlocks by himself
+  // then (like Tiny Guy after level 5) instead of waiting in the shop.
+  if (save.ownedSkins.includes('godTom') || hasBeatenGame(save)) list.push('godTom');
   return list;
 }
 
