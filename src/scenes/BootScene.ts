@@ -19,7 +19,9 @@ export class BootScene extends Phaser.Scene {
     this.makeBoss();
     this.makeRaider();
     this.makeMerchant();
+    this.makeBigBob();
     this.makeProjectiles();
+    this.makeAttackEffects();
     this.makePowerUps();
     this.makeBlocks();
     this.makeTiles();
@@ -45,12 +47,14 @@ export class BootScene extends Phaser.Scene {
   private drawKid(
     g: Phaser.GameObjects.Graphics,
     legs: 'stand' | 'runA' | 'runB' | 'air',
-    skin: 'tom' | 'henry',
+    skin: 'tom' | 'henry' | 'james' | 'nurse',
   ): void {
     const henry = skin === 'henry';
+    const james = skin === 'james';
+    const nurse = skin === 'nurse';
 
     // Cape / scarf trailing behind
-    g.fillStyle(henry ? 0x6a8fd8 : 0xf2b134, 1);
+    g.fillStyle(henry ? 0x6a8fd8 : james ? 0x8fd36a : nurse ? 0xffb6c9 : 0xf2b134, 1);
     g.fillTriangle(14, 22, 14, 40, 0, 34);
 
     // Legs
@@ -79,8 +83,9 @@ export class BootScene extends Phaser.Scene {
       g.fillRect(27, 55, 13, 5);
     }
 
-    // Body. Henry's shirt is midnight blue with stars on it.
-    g.fillStyle(henry ? 0x2a2f6b : 0x3563c9, 1);
+    // Body. Henry's shirt is midnight blue with stars; James's is orange;
+    // the Nurse's is white with a red cross.
+    g.fillStyle(henry ? 0x2a2f6b : james ? 0xffa63d : nurse ? 0xffffff : 0x3563c9, 1);
     g.fillRoundedRect(12, 26, 28, 22, 6);
     if (henry) {
       g.fillStyle(0xffe27a, 1);
@@ -93,6 +98,10 @@ export class BootScene extends Phaser.Scene {
       ] as const) {
         g.fillCircle(sx, sy, r);
       }
+    } else if (nurse) {
+      g.fillStyle(0xd7263d, 1);
+      g.fillRect(24, 33, 10, 4);
+      g.fillRect(27, 30, 4, 10);
     } else {
       g.fillStyle(0xe8f1ff, 1);
       g.fillRect(16, 26, 20, 5);
@@ -108,6 +117,14 @@ export class BootScene extends Phaser.Scene {
       g.fillRect(38, 30, 7, 13);
     }
 
+    // The Nurse carries a little bag everywhere.
+    if (nurse) {
+      g.fillStyle(0xd7263d, 1);
+      g.fillRoundedRect(39, 36, 11, 13, 3);
+      g.fillStyle(0x8c1d1d, 1);
+      g.fillRect(42, 33, 5, 4);
+    }
+
     // Head
     g.fillStyle(0xf6c9a0, 1);
     g.fillRoundedRect(13, 8, 26, 21, 8);
@@ -120,6 +137,19 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0x7d5330, 1);
       g.fillRect(14, 14, 9, 4);
       g.fillRect(28, 14, 9, 4);
+    } else if (james) {
+      g.fillStyle(0x1f6b3a, 1);
+      g.fillRoundedRect(11, 4, 30, 12, 6);
+      g.fillRect(11, 12, 30, 4);
+      g.fillStyle(0x164f2a, 1);
+      g.fillRect(36, 12, 12, 5);
+    } else if (nurse) {
+      // A white nurse cap with a red cross.
+      g.fillStyle(0xffffff, 1);
+      g.fillRoundedRect(13, 2, 26, 12, 5);
+      g.fillStyle(0xd7263d, 1);
+      g.fillRect(24, 3, 4, 9);
+      g.fillRect(21, 6, 10, 4);
     } else {
       g.fillStyle(0xd7263d, 1);
       g.fillRoundedRect(11, 4, 30, 12, 6);
@@ -141,6 +171,89 @@ export class BootScene extends Phaser.Scene {
     g.beginPath();
     g.arc(29, 25, 5, 0.2, Math.PI - 0.2);
     g.strokePath();
+  }
+
+  /** Shellcracker's costume: the kid's body under a spiky green shell. */
+  private drawShellKid(g: Phaser.GameObjects.Graphics, legs: 'stand' | 'runA' | 'runB' | 'air'): void {
+    this.drawKid(g, legs, 'tom');
+    g.fillStyle(0x17542e, 1);
+    g.fillEllipse(26, 30, 34, 26);
+    g.fillStyle(0x1f6b3a, 1);
+    g.fillEllipse(26, 26, 34, 16);
+    g.fillStyle(0xf1e4b8, 1);
+    g.fillTriangle(16, 20, 26, 8, 36, 20);
+    g.lineStyle(2, 0x0f3d20, 1);
+    g.strokeEllipse(26, 28, 26, 16);
+  }
+
+  /** Galactic Raider's costume: the kid's body under purple star armour. */
+  private drawRaiderKid(g: Phaser.GameObjects.Graphics, legs: 'stand' | 'runA' | 'runB' | 'air'): void {
+    this.drawKid(g, legs, 'tom');
+    g.fillStyle(0x4a3a8f, 1);
+    g.fillRoundedRect(10, 24, 30, 22, 6);
+    g.fillStyle(0x7a68c4, 1);
+    g.fillRoundedRect(14, 28, 22, 8, 3);
+    g.fillStyle(0xfff0a8, 1);
+    g.fillCircle(18, 33, 1.6);
+    g.fillCircle(30, 33, 1.6);
+    // A glowing sword, held low.
+    g.fillStyle(0x9ff0ff, 0.9);
+    g.fillTriangle(40, 34, 46, 32, 42, 60);
+    g.fillStyle(0xffe27a, 1);
+    g.fillRoundedRect(38, 30, 8, 5, 2);
+  }
+
+  /** Tiny Guy — a much smaller kid with a big hammer. */
+  private drawTinyGuy(g: Phaser.GameObjects.Graphics, legs: 'stand' | 'runA' | 'runB' | 'air'): void {
+    // Legs
+    g.fillStyle(0x2b4c8c, 1);
+    if (legs === 'stand') {
+      g.fillRect(10, 30, 6, 9);
+      g.fillRect(18, 30, 6, 9);
+    } else if (legs === 'runA') {
+      g.fillRect(8, 30, 7, 8);
+      g.fillRect(19, 31, 7, 7);
+    } else if (legs === 'runB') {
+      g.fillRect(9, 31, 7, 7);
+      g.fillRect(18, 30, 7, 8);
+    } else {
+      g.fillRect(8, 29, 6, 7);
+      g.fillRect(19, 31, 6, 8);
+    }
+
+    // Shoes
+    g.fillStyle(0x8b3a1f, 1);
+    g.fillRect(9, 37, 8, 3);
+    g.fillRect(17, 37, 8, 3);
+
+    // Body
+    g.fillStyle(0x3563c9, 1);
+    g.fillRoundedRect(8, 18, 18, 14, 4);
+
+    // Arms
+    g.fillStyle(0xf6c9a0, 1);
+    g.fillRect(4, 20, 5, 9);
+    g.fillRect(25, 18, 5, 10);
+
+    // Head
+    g.fillStyle(0xf6c9a0, 1);
+    g.fillRoundedRect(8, 4, 18, 15, 6);
+    g.fillStyle(0x6b4423, 1);
+    g.fillRoundedRect(7, 1, 20, 10, 5);
+
+    // Eyes
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(14, 12, 2.6);
+    g.fillCircle(20, 12, 2.6);
+    g.fillStyle(0x18202e, 1);
+    g.fillCircle(14.6, 12, 1.4);
+    g.fillCircle(20.6, 12, 1.4);
+
+    // Hammer, held out to the side.
+    g.fillStyle(0x8a5a35, 1);
+    g.fillRect(27, 12, 4, 18);
+    g.fillStyle(0x7a7f8c, 1);
+    g.fillRoundedRect(24, 4, 12, 10, 3);
   }
 
   /** The God Mushroom form: the kid, but as an enormous angry toadstool. */
@@ -195,10 +308,15 @@ export class BootScene extends Phaser.Scene {
     const poses = ['idle', 'run1', 'run2', 'jump'] as const;
     const legsFor = { idle: 'stand', run1: 'runA', run2: 'runB', jump: 'air' } as const;
 
-    for (const skin of ['tom', 'henry'] as const) {
+    for (const skin of ['tom', 'henry', 'james', 'nurse'] as const) {
       for (const pose of poses) {
         this.tex(`${skin}-${pose}`, 48, 62, (g) => this.drawKid(g, legsFor[pose], skin));
       }
+    }
+    for (const pose of poses) {
+      this.tex(`shellcracker-${pose}`, 48, 62, (g) => this.drawShellKid(g, legsFor[pose]));
+      this.tex(`galacticRaider-${pose}`, 48, 62, (g) => this.drawRaiderKid(g, legsFor[pose]));
+      this.tex(`tinyGuy-${pose}`, 32, 40, (g) => this.drawTinyGuy(g, legsFor[pose]));
     }
     for (const pose of poses) {
       this.tex(`godshroom-${pose}`, 48, 62, (g) => this.drawGodShroom(g, legsFor[pose]));
@@ -515,6 +633,63 @@ export class BootScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Big Bob: a giant teddy bear, "bigger than everything on screen". Henry
+   * says he has "twelve hundred llamas" — a joke, so he gets five real ones,
+   * drawn on the level-clear card and in the shop with the existing texture.
+   */
+  private makeBigBob(): void {
+    this.tex('merchant-bob', 300, 340, (g) => {
+      const fur = 0x9c6b3f;
+      const furDark = 0x7d5330;
+      // Ears
+      g.fillStyle(fur, 1);
+      g.fillCircle(70, 60, 38);
+      g.fillCircle(230, 60, 38);
+      g.fillStyle(0xe8c9a0, 1);
+      g.fillCircle(70, 60, 20);
+      g.fillCircle(230, 60, 20);
+      // Body
+      g.fillStyle(fur, 1);
+      g.fillEllipse(150, 220, 220, 200);
+      // Belly patch
+      g.fillStyle(0xe8c9a0, 1);
+      g.fillEllipse(150, 240, 120, 130);
+      // Head
+      g.fillStyle(fur, 1);
+      g.fillCircle(150, 110, 90);
+      // Snout
+      g.fillStyle(0xe8c9a0, 1);
+      g.fillEllipse(150, 132, 70, 52);
+      g.fillStyle(furDark, 1);
+      g.fillEllipse(150, 118, 20, 14);
+      // Eyes
+      g.fillStyle(0x2a1a18, 1);
+      g.fillCircle(118, 92, 8);
+      g.fillCircle(182, 92, 8);
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(121, 89, 2.6);
+      g.fillCircle(185, 89, 2.6);
+      // Mouth
+      g.lineStyle(4, furDark, 1);
+      g.lineBetween(150, 132, 150, 144);
+      g.beginPath();
+      g.arc(150, 144, 16, 0.2, Math.PI - 0.2);
+      g.strokePath();
+      // Arms
+      g.fillStyle(fur, 1);
+      g.fillEllipse(30, 210, 56, 130);
+      g.fillEllipse(270, 210, 56, 130);
+      // Feet
+      g.fillStyle(fur, 1);
+      g.fillEllipse(95, 320, 70, 40);
+      g.fillEllipse(205, 320, 70, 40);
+      g.fillStyle(0xe8c9a0, 1);
+      g.fillEllipse(95, 330, 40, 20);
+      g.fillEllipse(205, 330, 40, 20);
+    });
+  }
+
   // -- Projectiles ----------------------------------------------------------
 
   private makeProjectiles(): void {
@@ -622,6 +797,52 @@ export class BootScene extends Phaser.Scene {
       g.fillCircle(20, 20, 14);
       g.fillStyle(0xffd75e, 1);
       g.fillCircle(20, 20, 7);
+    });
+  }
+
+  // -- Skin E attacks ---------------------------------------------------------
+
+  private makeAttackEffects(): void {
+    // Nurse's purse swing.
+    this.tex('swing-purse', 64, 50, (g) => {
+      g.fillStyle(0xd7263d, 0.85);
+      g.fillEllipse(32, 25, 56, 34);
+      g.fillStyle(0x8c1d1d, 0.9);
+      g.fillRect(24, 8, 16, 8);
+      g.lineStyle(2, 0xffffff, 0.5);
+      g.lineBetween(6, 14, 20, 24);
+      g.lineBetween(6, 36, 20, 28);
+    });
+
+    // Tiny Guy's hammer swing.
+    this.tex('swing-hammer', 64, 50, (g) => {
+      g.fillStyle(0x7a7f8c, 0.9);
+      g.fillRoundedRect(14, 8, 30, 22, 5);
+      g.fillStyle(0x8a5a35, 1);
+      g.fillRect(40, 16, 20, 8);
+      g.lineStyle(2, 0xffffff, 0.5);
+      g.lineBetween(10, 40, 24, 30);
+      g.lineBetween(10, 46, 28, 34);
+    });
+
+    // Galactic Raider's sword swing.
+    this.tex('swing-sword', 64, 50, (g) => {
+      g.fillStyle(0x9ff0ff, 0.55);
+      g.fillEllipse(32, 25, 60, 40);
+      g.fillStyle(0xe6ffff, 0.7);
+      g.fillEllipse(32, 25, 40, 20);
+      g.fillStyle(0xffe27a, 1);
+      g.fillRoundedRect(4, 20, 10, 10, 2);
+    });
+
+    // Shellcracker's backside fire, shot opposite the way it is facing.
+    this.tex('proj-backfire', 30, 30, (g) => {
+      g.fillStyle(0x3fa34d, 0.4);
+      g.fillCircle(15, 15, 14);
+      g.fillStyle(0x1f6b3a, 1);
+      g.fillCircle(15, 15, 10);
+      g.fillStyle(0xd6f0b8, 1);
+      g.fillCircle(15, 15, 5);
     });
   }
 

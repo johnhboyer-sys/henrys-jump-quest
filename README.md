@@ -1,7 +1,7 @@
 # Jump Quest
 
 A 2D side-scrolling platformer built from Henry and Tom's brainstorm.
-Five levels, four enemies, five power-ups, two bosses and two playable skins.
+Five levels, four enemies, five power-ups, two bosses and seven playable skins.
 
 ## Run it
 
@@ -20,16 +20,36 @@ Then open the URL Vite prints. `npm run build` type-checks and bundles to `dist/
 | ↑ | Jump — hold for a higher one (W / Space also work) |
 | ↑ again | Double jump, if you are holding the Cloud |
 | ↓ | Use the power-up you are holding (S also works) |
-| ESC | Pause (Q from the pause card leaves the level) |
+| E | Your skin's attack, if it has one (see Skins below) |
+| H | Nurse only: spend 20 coins to heal to full |
+| ESC | Pause (Q from the pause card leaves the level; number keys switch skin, if the mid-level switch is turned on) |
 | Shift+R | Restart the level |
-| S | Swap skin (menu screen) |
+| S | Cycle skins (menu screen) |
 | M | Mute (menu screen) |
 
 ## What is in it
 
-**Player** — 100 HP, and two skins: **Tom** in a red cap, **Henry** with brown
-hair, blue eyes and a starry shirt. Press S on the menu to swap. Stomp enemies
-from above, or burn them.
+**Player** — a skin, from the table below. Press S on the menu to cycle through
+whatever skins are available for the highlighted level. Stomp enemies from
+above, or burn them.
+
+**Skins** are no longer just a look: each carries its own max HP, run speed,
+jump, and body size, and some carry an attack on **E**.
+
+| Skin | How you get it | Max HP | Run speed | Jump | E attack |
+| --- | --- | --- | --- | --- | --- |
+| Tom | free | 100 | 320 | -760 | — |
+| Henry | free | 100 | 320 | -760 | — |
+| James | Boo: rent 20 coins / 3 levels, or 1000 forever | 90 | 1000 | -760 | — |
+| Nurse | Boo: rent 100 coins / 20 levels, or 1000 forever | 100 | 320 | -760 | purse swing, 20 dmg, never hurts bosses |
+| Tiny Guy | free forever once you beat the Galactic Raider (level 5) | 100 | 370 | -820 | hammer swing, 30 dmg |
+| Shellcracker | Big Bob: 100 coins forever, once you have beaten him; also free to wear while replaying level 3 | 100 | 320 | -760 | backside fire, 50 dmg |
+| Galactic Raider | Big Bob: 100 coins forever, once you have beaten him; also free to wear while replaying level 5 | 100 | 320 | -760 | star sword — a quarter of a target's own max HP per hit, so any ordinary enemy or minion dies in 4 hits |
+
+James's run speed genuinely overshoots — Henry was warned and kept it anyway.
+Shellcracker's costume also walks backwards, at 160, when you hold Left and
+Right together (everyone else just stands still). No E attack ever damages a
+boss, whatever it does to ordinary enemies.
 
 **Dying** — you get 5 lives per attempt, plus any 1-UPs you have banked. A death
 puts you back on the last ground you stood on safely, so it costs you a few
@@ -57,7 +77,10 @@ next level** — every level starts you plain, unless you bought one in the shop
 block has a 50% chance of 4 coins as well as its power-up), 2 for every enemy
 you kill and 300 for beating a boss. They go in the bank when you finish a
 level. After every normal level **Boo Mommy Bag** turns up on the level-clear
-card with her two llamas. Click her to shop:
+card with her two llamas; after a **boss** level, **Big Bob** — a teddy bear
+"bigger than everything on screen" — turns up instead, with five llamas of his
+own (Henry claims he has "twelve hundred"; that part is a joke). Click either
+to shop:
 
 | Item | Price | What you get |
 | --- | --- | --- |
@@ -65,8 +88,27 @@ card with her two llamas. Click her to shop:
 | Cloud | 50 | start the next level holding the cloud |
 | Super Star | 100 | the star for the whole of your next 3 levels |
 | God Mushroom | 1000 | the God Mushroom for the whole of your next level |
+| James (rent) | 20 | wear James for the next 3 levels |
+| James (forever) | 1000 | own James for good |
+| Nurse (rent) | 100 | wear the Nurse for the next 20 levels |
+| Nurse (forever) | 1000 | own the Nurse for good |
 
-A bought Star or Mushroom comes back if you fall down a pit.
+Big Bob only sells Shellcracker and Galactic Raider, and only once you have
+beaten the boss in question — 100 coins each, forever.
+
+A bought Star or Mushroom comes back if you fall down a pit. A skin rental
+counts down by one level every time you finish a level, whichever skin you
+happened to be wearing, and buying any skin puts it on immediately. Renting a
+skin you already own, or already have rented, is refused — nothing is sold
+twice here either.
+
+**Switching skins mid-level** — behind `SKINS_CONFIG.switchMidLevel` in
+`src/config/skins.ts` (on by default). With it on, the pause card lists every
+skin available to you, numbered; press a number to switch on the spot. It
+refuses if the new body would not fit where you are standing (Tiny Guy ducking
+somewhere Tom cannot fit, say). John asked for this over Henry's objection
+that it is "cheating" — flip the flag off to remove it without ripping the
+feature back out.
 
 **Enemies**
 
@@ -156,6 +198,30 @@ The brainstorm deliberately left a lot unspecified. What I chose, and why:
   no audio files.
 - **Fixed 1280x720, scaled to fit.** `Scale.RESIZE` misbehaves in embedded panes.
 
+### Skin numbers that are placeholders, not Henry's
+
+The skins brief gave exact numbers for some stats (marked (H) in the design
+notes) and left the rest for this pass to fill in. Every one of these lives in
+`src/config/skins.ts` with a `// placeholder: not Henry's number` comment, so
+they are easy to find and easy to change:
+
+- **Tiny Guy's max HP (100), run speed (370), jump (-820), and body size
+  (26×36)** — nothing in the brief pinned these down beyond "much smaller".
+- **Shellcracker and Galactic Raider's max HP (100), run speed (320) and jump
+  (-760) as skins** — set equal to Tom's, since nothing suggested the boss
+  costumes should move differently from an ordinary kid.
+- **All four attack cooldowns** (purse 400ms, hammer 450ms, sword 400ms,
+  backfire 500ms) — Henry specified damage, not pacing.
+- **The melee swing hitbox** (roughly 64×50 in front of the player) and the
+  backfire projectile's speed and lifetime.
+- **Rentals count down whichever skin you actually wore**, not just the rented
+  one, and every active rental counts down together — tracking per-skin
+  play-time felt like more machinery than a kid's shop needs.
+- **Buying a skin puts it on immediately.** Not asked for, but leaving a freshly
+  bought skin unworn seemed like the more confusing default.
+- **`SKINS_CONFIG.switchMidLevel` defaults to on.** John's call, over Henry's
+  "that's cheating" — see Controls and the shop section above.
+
 ## Adding to it
 
 - **A level** is data: add a `LevelDef` to `src/config/levels.ts`. Platform x/y is
@@ -166,7 +232,9 @@ The brainstorm deliberately left a lot unspecified. What I chose, and why:
   `GameScene.onPickup`.
 - **A boss** is a def in `src/config/bosses.ts` plus a subclass of `BossBase`
   supplying `pickAttack`, `telegraphFor` and `launchAttack`.
-- **A skin** is a branch in `BootScene.drawKid` and an id in `SkinId`.
+- **A skin** is a `SkinDef` in `src/config/skins.ts` (stats, body size, optional
+  E attack), poses drawn in `BootScene`, and its unlock/shop rule wired into
+  `availableSkins` and `blockedReason` in `src/systems/SaveSystem.ts`.
 - **Tuning** — jump height, speed, damage and cooldowns all live in
   `src/config/game.ts`.
 

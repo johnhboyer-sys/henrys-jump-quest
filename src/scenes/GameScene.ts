@@ -13,7 +13,7 @@ import { DEATH_Y, getLevel, LEVELS, type LevelDef, type PlatformDef } from '../c
 import { HEART_HEAL, POWERUPS, type PowerUpKind } from '../config/powerups';
 import { BOUGHT_FORM_MS } from '../config/shop';
 
-import { Player } from '../entities/Player';
+import { Player, type SkinId } from '../entities/Player';
 import { Projectile, type ProjectileOptions } from '../entities/Projectile';
 import { Coin, PowerUpPickup } from '../entities/Collectible';
 import { QuestionBlock } from '../entities/QuestionBlock';
@@ -23,12 +23,16 @@ import { createBoss, type BossBase, type HitSource } from '../entities/bosses';
 import { createEnemy, Enemy, type EnemyWorld } from '../entities/enemies';
 import type { EnemyKind } from '../config/enemies';
 import { buildBackdrop } from '../systems/Backdrop';
+import { SKINS, RAIDER_SWORD_FRACTION, type AttackKind } from '../config/skins';
 import {
   recordLevelClear,
   loadSave,
   bankOneUp,
   penaliseRunOut,
   spendOneUp,
+  availableSkins,
+  spendCoins,
+  setSkin,
 } from '../systems/SaveSystem';
 import { play } from '../systems/SoundSystem';
 
@@ -44,6 +48,8 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   private enemies!: Phaser.Physics.Arcade.Group;
   private playerShots!: Phaser.Physics.Arcade.Group;
   private enemyShots!: Phaser.Physics.Arcade.Group;
+  /** Shellcracker's backside fire. Its own group so it can never hit a boss. */
+  private backfireShots!: Phaser.Physics.Arcade.Group;
   private coins!: Phaser.Physics.Arcade.Group;
   private pickups!: Phaser.Physics.Arcade.Group;
   private blocks!: Phaser.Physics.Arcade.StaticGroup;
@@ -67,6 +73,8 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     d: Phaser.Input.Keyboard.Key;
     w: Phaser.Input.Keyboard.Key;
     s: Phaser.Input.Keyboard.Key;
+    e: Phaser.Input.Keyboard.Key;
+    h: Phaser.Input.Keyboard.Key;
   };
 
   private score = 0;
@@ -122,6 +130,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.spikes = this.physics.add.group({ allowGravity: false, immovable: true });
     this.playerShots = this.physics.add.group({ classType: Projectile, runChildUpdate: false });
     this.enemyShots = this.physics.add.group({ classType: Projectile, runChildUpdate: false });
+    this.backfireShots = this.physics.add.group({ classType: Projectile, runChildUpdate: false });
 
     for (const c of level.coins) this.coins.add(new Coin(this, c.x, c.y));
     for (const t of level.icicles) this.traps.push(new IcicleTrap(this, t, this.spikes));
@@ -135,7 +144,9 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.respawnPoint = { ...level.playerStart };
     this.safeGround = { ...level.playerStart };
     const save = loadSave();
-    this.player = new Player(this, level.playerStart.x, level.playerStart.y, save.skin);
+    const avail = availableSkins(save, level.id);
+    const startSkin: SkinId = avail.includes(save.skin) ? save.skin : 'tom';
+    this.player = new Player(this, level.playerStart.x, level.playerStart.y, startSkin);
     // Transformations never survive a level change on their own. What carries
     // in is the level's starting power-up (or one bought in the shop, which
     // takes its place) and any Star or Mushroom bought to last whole levels.
@@ -249,6 +260,14 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       else shot.pop();
     });
 
+    // Shellcracker's backside fire. Its own group, deliberately never given an
+    // overlap against the boss — the brief is explicit that no E attack ever
+    // damages one.
+    this.physics.add.overlap(this.backfireShots, this.enemies, (s, e) =>
+      this.onShotHitsEnemy(s as Projectile, e as Enemy),
+    );
+    this.physics.add.collider(this.backfireShots, this.solids, (s) => (s as Projectile).pop());
+
     for (const cp of this.checkpoints) {
       this.physics.add.overlap(this.player, cp, () => this.onCheckpoint(cp));
     }
@@ -279,6 +298,8 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       d: kb.addKey(K.D),
       w: kb.addKey(K.W),
       s: kb.addKey(K.S),
+      e: kb.addKey(K.E),
+      h: kb.addKey(K.H),
     };
     // Stop the arrow keys scrolling the page behind the canvas.
     kb.addCapture([K.LEFT, K.RIGHT, K.UP, K.DOWN, K.SPACE]);
@@ -299,7 +320,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.paused = !this.paused;
     if (this.paused) {
       this.physics.world.pause();
-      this.events.emit('pause', { levelName: this.level.name });
+      this.events.emit('pause', { levelName: this.level.name, levelId: this.level.id });
     } else {
       this.physics.world.resume();
       this.events.emit('resume');
@@ -311,6 +332,41 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.physics.world.resume();
     this.scene.stop('UI');
     this.scene.start('Menu');
+  }
+
+  /**
+   * Called by the pause card (behind SKINS_CONFIG.switchMidLevel) when the
+   * player picks a numbered skin. Refuses if the new body would not fit where
+   * the player is currently standing.
+   */
+  trySwitchSkin(skinId: SkinId): { ok: boolean; reason?: string } {
+    const save = loadSave();
+    if (!availableSkins(save, this.level.id).includes(skinId)) {
+      return { ok: false, reason: "You don't have that skin." };
+    }
+    const def = SKINS[skinId];
+    const feetY = this.player.y;
+    const x = this.player.x;
+    // overlapRect treats a body merely touching a surface as overlapping it —
+    // and standing still, your feet always touch the ground you're on. Inset
+    // the probe by a couple of px so resting on the floor doesn't self-refuse;
+    // a real low ceiling or wall still overlaps well inside that margin.
+    const pad = 3;
+    const blocked = this.physics.overlapRect(
+      x - def.bodyW / 2 + pad,
+      feetY - def.bodyH + pad,
+      Math.max(1, def.bodyW - pad * 2),
+      Math.max(1, def.bodyH - pad * 2),
+      false,
+      true,
+    );
+    if (blocked.length > 0) {
+      return { ok: false, reason: "That skin won't fit here!" };
+    }
+    this.player.setSkin(skinId);
+    setSkin(skinId);
+    this.emitHud();
+    return { ok: true };
   }
 
   private setupCamera(level: LevelDef): void {
@@ -617,6 +673,85 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     });
   }
 
+  // -- Skin E attacks ---------------------------------------------------------
+
+  /** E. Melee skins swing a rect in front of the player; Shellcracker shoots. */
+  private tryPlayerAttack(now: number): void {
+    if (!this.player.canAttack(now)) return;
+    const atk = this.player.attackDef;
+    if (!atk) return;
+    this.player.recordAttack(now);
+
+    if (atk.kind === 'backfire') {
+      this.fireBackside(atk.damage);
+      play('fire');
+      return;
+    }
+
+    const bounds = this.player.getBounds();
+    const swingW = 64;
+    const swingH = 50;
+    const rectX = this.player.facing === 1 ? bounds.right : bounds.left - swingW;
+    const rectY = bounds.centerY - swingH / 2;
+    const rect = new Phaser.Geom.Rectangle(rectX, rectY, swingW, swingH);
+    this.showSwing(atk.kind, rectX, rectY, swingW, swingH);
+
+    for (const obj of this.enemies.getChildren()) {
+      const enemy = obj as Enemy;
+      if (!enemy.active) continue;
+      if (!Phaser.Geom.Intersects.RectangleToRectangle(rect, enemy.getBounds())) continue;
+      // The sword ignores the flat damage and takes a quarter of the target's
+      // own max HP — that is what makes it a 4-hit kill on anything, minions
+      // included, whatever their raw HP happens to be.
+      const damage = atk.kind === 'sword' ? enemy.def.hp * RAIDER_SWORD_FRACTION : atk.damage;
+      if (enemy.hit(damage)) this.killEnemy(enemy, SCORE.enemyBurned);
+    }
+    play('stomp');
+  }
+
+  /** Shellcracker's E: a shot fired opposite the way it is facing. */
+  private fireBackside(damage: number): void {
+    const shot = this.backfireShots.get(this.player.x, this.player.y) as Projectile | null;
+    if (!shot) return;
+    const dir = -this.player.facing;
+    shot.fire(this.player.x + dir * 26, this.player.y - 34, {
+      texture: 'proj-backfire',
+      damage,
+      vx: dir * 480,
+      vy: 0,
+      lifetimeMs: 1400,
+    });
+  }
+
+  /** A short, visible swing for the melee attacks. */
+  private showSwing(kind: AttackKind, x: number, y: number, w: number, h: number): void {
+    const texture = kind === 'purse' ? 'swing-purse' : kind === 'hammer' ? 'swing-hammer' : 'swing-sword';
+    const fx = this.add.image(x + w / 2, y + h / 2, texture).setDepth(21).setAlpha(0.9);
+    this.tweens.add({
+      targets: fx,
+      alpha: 0,
+      scale: 1.3,
+      duration: 180,
+      onComplete: () => fx.destroy(),
+    });
+  }
+
+  /** H. The Nurse's own heal: 20 coins from the bank for a full top-up. */
+  private tryNurseHeal(): void {
+    if (!this.player.isAlive || this.player.skin !== 'nurse') return;
+    if (this.player.hp >= this.player.maxHp) {
+      this.flashBanner('Already full!');
+      return;
+    }
+    if (!spendCoins(20)) {
+      this.flashBanner('Not enough coins!');
+      return;
+    }
+    this.player.heal(this.player.maxHp);
+    play('power');
+    this.emitHud();
+  }
+
   // -- Life cycle -----------------------------------------------------------
 
   private checkDeath(): void {
@@ -757,9 +892,12 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (wasBoss) this.coinsTaken += COIN_REWARD.boss;
     play('win');
 
+    const clearedBefore = loadSave().clearedLevel;
     const save = recordLevelClear(this.level.id, this.score, this.coinsTaken);
     const lastLevelId = LEVELS[LEVELS.length - 1].id;
     const hasNext = this.level.id < lastLevelId && save.unlockedLevel > this.level.id;
+    // Beating the Galactic Raider (level 5) is what unlocks Tiny Guy forever.
+    const tinyGuyUnlocked = clearedBefore < 5 && save.clearedLevel >= 5;
 
     this.player.setVelocity(0, 0);
     (this.player.body as Phaser.Physics.Arcade.Body).enable = false;
@@ -773,6 +911,8 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       nextLevelId: hasNext ? this.level.id + 1 : null,
       isBoss: wasBoss,
       totalCoins: save.totalCoins,
+      merchant: wasBoss ? 'bob' : 'boo',
+      tinyGuyUnlocked,
     });
   }
 
@@ -800,9 +940,11 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   }
 
   private emitHud(): void {
+    const attack = this.player.attackDef;
+    const isNurse = this.player.skin === 'nurse';
     this.events.emit('hud', {
       hp: this.player.hp,
-      maxHp: PLAYER.maxHp,
+      maxHp: this.player.maxHp,
       score: this.score,
       coins: this.coinsTaken,
       held: this.player.held as PowerUpKind | null,
@@ -815,6 +957,10 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
         (this.player.formTotalMs === BOUGHT_FORM_MS ? ' — whole level' : ''),
       formMs: this.player.formRemainingMs,
       formTotalMs: this.player.formTotalMs,
+      skinLabel: SKINS[this.player.skin].label,
+      attackHint: attack ? attack.hint : null,
+      canNurseHeal:
+        isNurse && this.player.hp < this.player.maxHp && loadSave().totalCoins >= 20,
     });
     if (this.boss && this.bossAwake) {
       this.events.emit('boss', {
@@ -859,6 +1005,9 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       if (used === 'fire') this.throwFireball();
       if (used === 'hop') this.cloudPuff();
     }
+
+    if (Phaser.Input.Keyboard.JustDown(k.e)) this.tryPlayerAttack(time);
+    if (Phaser.Input.Keyboard.JustDown(k.h)) this.tryNurseHeal();
 
     if (this.boss && !this.bossAwake && this.player.x > this.boss.x - 780) this.wakeBoss();
 

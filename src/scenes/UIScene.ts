@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { VIEW, PLAYER } from '../config/game';
 import { POWERUPS, type PowerUpKind } from '../config/powerups';
+import { SKINS, SKINS_CONFIG, type SkinId } from '../config/skins';
+import { availableSkins, loadSave } from '../systems/SaveSystem';
 
 interface HudData {
   hp: number;
@@ -15,6 +17,9 @@ interface HudData {
   formLabel: string;
   formMs: number;
   formTotalMs: number;
+  skinLabel: string;
+  attackHint: string | null;
+  canNurseHeal: boolean;
 }
 
 interface BossData {
@@ -40,6 +45,10 @@ interface CompleteData {
   isBoss: boolean;
   /** The coin bank after this level's coins went in. */
   totalCoins: number;
+  /** Which merchant turns up on the card. */
+  merchant: 'boo' | 'bob';
+  /** True the first time clearedLevel crosses 5, unlocking Tiny Guy for good. */
+  tinyGuyUnlocked: boolean;
 }
 
 const FONT = 'monospace';
@@ -60,7 +69,9 @@ export class UIScene extends Phaser.Scene {
   private livesText!: Phaser.GameObjects.Text;
   private formBar!: Phaser.GameObjects.Graphics;
   private formText!: Phaser.GameObjects.Text;
+  private skinInfoText!: Phaser.GameObjects.Text;
   private pauseCard?: Phaser.GameObjects.Container;
+  private pauseDigitHandler?: (ev: KeyboardEvent) => void;
   private levelId = 1;
   private hud: HudData = {
     hp: PLAYER.maxHp,
@@ -75,6 +86,9 @@ export class UIScene extends Phaser.Scene {
     formLabel: '',
     formMs: 0,
     formTotalMs: 0,
+    skinLabel: '',
+    attackHint: null,
+    canNurseHeal: false,
   };
   private boss: BossData | null = null;
 
@@ -125,6 +139,16 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setDepth(2);
 
+    // Which skin is worn, and what its E (and H) key does, if anything.
+    this.skinInfoText = this.add
+      .text(VIEW.width - 24, 74, '', {
+        fontFamily: FONT,
+        fontSize: '14px',
+        color: '#ffe27a',
+      })
+      .setOrigin(1, 0)
+      .setDepth(2);
+
     // Held power-up slot.
     const slot = this.add.graphics().setDepth(0);
     slot.fillStyle(0x000000, 0.35);
@@ -170,7 +194,9 @@ export class UIScene extends Phaser.Scene {
     });
     game.events.on('complete', (d: CompleteData) => this.showComplete(d));
     game.events.on('gameover', (d: GameOverData) => this.showGameOver(d));
-    game.events.on('pause', (d: { levelName: string }) => this.showPause(d.levelName));
+    game.events.on('pause', (d: { levelName: string; levelId: number }) =>
+      this.showPause(d.levelName, d.levelId),
+    );
     game.events.on('resume', () => this.hidePause());
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -203,6 +229,13 @@ export class UIScene extends Phaser.Scene {
     this.scoreText.setText(`SCORE ${score}`);
     this.coinText.setText(`COINS ${coins}`);
     this.livesText.setText(`LIVES ${'♥'.repeat(Math.max(0, Math.min(6, this.hud.lives)))}`);
+
+    const bits = [`Skin: ${this.hud.skinLabel}`];
+    if (this.hud.attackHint) bits.push(this.hud.attackHint);
+    if (this.hud.skinLabel === 'Nurse') bits.push('H = heal (20)');
+    this.skinInfoText
+      .setText(bits.join('   '))
+      .setColor(this.hud.canNurseHeal ? '#7ee6a0' : '#ffe27a');
 
     if (held) {
       const def = POWERUPS[held];
@@ -247,7 +280,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   /** The pause card. ESC closes it; Q leaves the level. */
-  private showPause(levelName: string): void {
+  private showPause(levelName: string, levelId: number): void {
     if (this.pauseCard) return;
     const cx = VIEW.width / 2;
 
@@ -256,7 +289,7 @@ export class UIScene extends Phaser.Scene {
     veil.fillRect(0, 0, VIEW.width, VIEW.height);
 
     const title = this.add
-      .text(cx, 240, 'PAUSED', {
+      .text(cx, 190, 'PAUSED', {
         fontFamily: FONT,
         fontSize: '58px',
         color: '#ffe27a',
@@ -266,7 +299,7 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const body = this.add
-      .text(cx, 330, `${levelName}\n\nESC — keep playing\nShift+R — restart level\nQ — back to the menu`, {
+      .text(cx, 280, `${levelName}\n\nESC — keep playing\nShift+R — restart level\nQ — back to the menu`, {
         fontFamily: FONT,
         fontSize: '22px',
         color: '#ffffff',
@@ -274,7 +307,47 @@ export class UIScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.pauseCard = this.add.container(0, 0, [veil, title, body]).setDepth(55);
+    const contents: Phaser.GameObjects.GameObject[] = [veil, title, body];
+    let skinList: SkinId[] = [];
+    let switchMsg: Phaser.GameObjects.Text | undefined;
+
+    // Mid-level skin switching, behind its own flag — John asked for it over
+    // Henry's objection, so it stays easy to switch back off.
+    if (SKINS_CONFIG.switchMidLevel) {
+      const save = loadSave();
+      skinList = availableSkins(save, levelId);
+      const lines = skinList
+        .map((id, i) => `${i + 1} — ${SKINS[id].label}${id === save.skin ? ' (current)' : ''}`)
+        .join('\n');
+      const listTop = 430;
+      const lineHeight = 20;
+      const switchTitle = this.add
+        .text(cx, listTop, 'Switch skin:', {
+          fontFamily: FONT,
+          fontSize: '18px',
+          color: '#9fd8f0',
+        })
+        .setOrigin(0.5);
+      const switchList = this.add
+        .text(cx, listTop + 26, lines, {
+          fontFamily: FONT,
+          fontSize: '17px',
+          color: '#cfd9e8',
+          align: 'center',
+          lineSpacing: 4,
+        })
+        .setOrigin(0.5, 0);
+      switchMsg = this.add
+        .text(cx, listTop + 26 + skinList.length * lineHeight + 20, '', {
+          fontFamily: FONT,
+          fontSize: '16px',
+          color: '#ffe27a',
+        })
+        .setOrigin(0.5);
+      contents.push(switchTitle, switchList, switchMsg);
+    }
+
+    this.pauseCard = this.add.container(0, 0, contents).setDepth(55);
 
     const kb = this.input.keyboard!;
     kb.once('keydown-Q', () => {
@@ -282,12 +355,31 @@ export class UIScene extends Phaser.Scene {
       this.hidePause();
       game.quitToMenu?.();
     });
+
+    if (SKINS_CONFIG.switchMidLevel) {
+      const handler = (ev: KeyboardEvent) => {
+        const n = Number(ev.key);
+        if (!Number.isInteger(n) || n < 1 || n > skinList.length) return;
+        const game = this.scene.get('Game') as Phaser.Scene & {
+          trySwitchSkin?: (id: SkinId) => { ok: boolean; reason?: string };
+        };
+        const result = game.trySwitchSkin?.(skinList[n - 1]);
+        if (!result) return;
+        switchMsg?.setText(result.ok ? `Now wearing ${SKINS[skinList[n - 1]].label}.` : (result.reason ?? "Can't switch."));
+      };
+      this.pauseDigitHandler = handler;
+      kb.on('keydown', handler);
+    }
   }
 
   private hidePause(): void {
     this.pauseCard?.destroy(true);
     this.pauseCard = undefined;
     this.input.keyboard?.off('keydown-Q');
+    if (this.pauseDigitHandler) {
+      this.input.keyboard?.off('keydown', this.pauseDigitHandler);
+      this.pauseDigitHandler = undefined;
+    }
   }
 
   /**
@@ -373,7 +465,7 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(51);
 
-    this.add
+    const statsText = this.add
       .text(cx, 360, lines, {
         fontFamily: FONT,
         fontSize: '24px',
@@ -382,6 +474,19 @@ export class UIScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(51);
+
+    if (d.tinyGuyUnlocked) {
+      this.add
+        .text(cx, statsText.y + statsText.displayHeight / 2 + 28, 'TINY GUY UNLOCKED!', {
+          fontFamily: FONT,
+          fontSize: '22px',
+          color: '#8ef0a8',
+          stroke: '#000000',
+          strokeThickness: 5,
+        })
+        .setOrigin(0.5)
+        .setDepth(51);
+    }
 
     const prompt = d.nextLevelId
       ? 'Press SPACE for the next level   •   ESC for the menu'
@@ -403,8 +508,34 @@ export class UIScene extends Phaser.Scene {
       game.scene.start(key, data);
     };
 
-    // Boo Mommy Bag sets up shop after every normal level. Click her to buy.
-    if (!d.isBoss) {
+    // Boo Mommy Bag sets up shop after every normal level; Big Bob after a
+    // boss. Click either to buy — same guarded leave() either way.
+    if (d.merchant === 'bob') {
+      for (const [lx, flip] of [
+        [830, false],
+        [900, true],
+        [1030, false],
+        [1210, true],
+        [1250, false],
+      ] as const) {
+        this.add.image(lx, 690, 'llama').setOrigin(0.5, 1).setDepth(51).setFlipX(flip);
+      }
+      const bob = this.add
+        .image(1070, 700, 'merchant-bob')
+        .setOrigin(0.5, 1)
+        .setDepth(52)
+        .setInteractive({ useHandCursor: true });
+      this.add
+        .text(1070, 350, 'Click Big Bob\nto go shopping!', {
+          fontFamily: FONT,
+          fontSize: '18px',
+          color: '#ffd76b',
+          align: 'center',
+        })
+        .setOrigin(0.5)
+        .setDepth(53);
+      bob.on('pointerdown', () => leave('Shop', { nextLevelId: d.nextLevelId, merchant: 'bob' }));
+    } else {
       this.add.image(985, 680, 'llama').setOrigin(0.5, 1).setDepth(51);
       this.add.image(1225, 680, 'llama').setOrigin(0.5, 1).setDepth(51).setFlipX(true);
       const boo = this.add
@@ -421,7 +552,7 @@ export class UIScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
         .setDepth(51);
-      boo.on('pointerdown', () => leave('Shop', { nextLevelId: d.nextLevelId }));
+      boo.on('pointerdown', () => leave('Shop', { nextLevelId: d.nextLevelId, merchant: 'boo' }));
     }
 
     const kb = this.input.keyboard!;

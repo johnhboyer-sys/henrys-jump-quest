@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import { VIEW } from '../config/game';
 import { LEVELS } from '../config/levels';
-import { loadSave, setSkin } from '../systems/SaveSystem';
+import { loadSave, setSkin, availableSkins, type SaveData } from '../systems/SaveSystem';
 import { toggleMute, isMuted, play } from '../systems/SoundSystem';
-import type { SkinId } from '../entities/Player';
+import { SKINS, type SkinId } from '../config/skins';
 
 const FONT = 'monospace';
 
@@ -13,6 +13,7 @@ export class MenuScene extends Phaser.Scene {
   private rows: Phaser.GameObjects.Text[] = [];
   private unlocked = 1;
   private muteText!: Phaser.GameObjects.Text;
+  private save!: SaveData;
   private skin: SkinId = 'tom';
   private hero!: Phaser.GameObjects.Image;
   private skinText!: Phaser.GameObjects.Text;
@@ -49,9 +50,9 @@ export class MenuScene extends Phaser.Scene {
     this.add.image(1040, 640, 'enemy-firefoe').setOrigin(0.5, 1);
     this.add.image(1140, 560, 'enemy-butterfly').setOrigin(0.5, 1);
 
-    const save = loadSave();
-    this.skin = save.skin;
-    this.hero = this.add.image(cx, 648, `${this.skin}-idle`).setOrigin(0.5, 1).setScale(1.7);
+    this.save = loadSave();
+    const save = this.save;
+    this.hero = this.add.image(cx, 648, `${save.skin}-idle`).setOrigin(0.5, 1).setScale(1.7);
     this.tweens.add({
       targets: this.hero,
       y: 636,
@@ -149,14 +150,33 @@ export class MenuScene extends Phaser.Scene {
       this.refreshMute();
     });
 
-    this.refreshSkin();
+    this.refreshSkinForSelection();
     this.highlight();
   }
 
-  /** Flip between the two player skins and remember the choice. */
+  /** Every skin the player may currently wear, for the highlighted level. */
+  private availableForSelection(): SkinId[] {
+    return availableSkins(this.save, LEVELS[this.selected].id);
+  }
+
+  /**
+   * Shows the saved skin if it still fits the highlighted level, or Tom if it
+   * does not — moving the highlight never overwrites the save, only the menu
+   * display.
+   */
+  private refreshSkinForSelection(): void {
+    const avail = this.availableForSelection();
+    this.skin = avail.includes(this.save.skin) ? this.save.skin : 'tom';
+    this.hero.setTexture(`${this.skin}-idle`);
+    this.refreshSkin();
+  }
+
+  /** Cycle through every skin available for the highlighted level. */
   private swapSkin(): void {
-    this.skin = this.skin === 'tom' ? 'henry' : 'tom';
-    setSkin(this.skin);
+    const avail = this.availableForSelection();
+    const next = avail[(avail.indexOf(this.skin) + 1) % avail.length] ?? avail[0];
+    this.skin = next;
+    this.save = setSkin(next);
     this.hero.setTexture(`${this.skin}-idle`);
     this.tweens.add({ targets: this.hero, scale: { from: 2.1, to: 1.7 }, duration: 220 });
     this.refreshSkin();
@@ -164,8 +184,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private refreshSkin(): void {
-    const name = this.skin === 'henry' ? 'HENRY' : 'TOM';
-    this.skinText.setText(`Playing as ${name}   (press S to swap)`);
+    this.skinText.setText(`Playing as ${SKINS[this.skin].label.toUpperCase()}   (press S to swap)`);
   }
 
   private refreshMute(): void {
@@ -176,6 +195,7 @@ export class MenuScene extends Phaser.Scene {
     this.selected = Phaser.Math.Wrap(this.selected + step, 0, LEVELS.length);
     play('block');
     this.highlight();
+    this.refreshSkinForSelection();
   }
 
   private highlight(): void {

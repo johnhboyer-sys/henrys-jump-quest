@@ -2,11 +2,13 @@ import Phaser from 'phaser';
 import { PLAYER, PHYSICS, STATUS, CLOUD, FIREBALL, STAR, MUSHROOM } from '../config/game';
 import type { PowerUpKind } from '../config/powerups';
 import { BOUGHT_FORM_MS } from '../config/shop';
+import { SKINS, SHELLCRACKER_BACKWARDS_SPEED, type SkinAttack, type SkinDef } from '../config/skins';
+import type { SkinId } from '../config/skins';
 
 export type StatusKind = 'slow' | 'freeze' | 'stuck';
 
-/** Which sprite set the player wears. Purely cosmetic. */
-export type SkinId = 'tom' | 'henry';
+/** Which sprite set the player wears. Now carries stats, not just a look. */
+export type { SkinId };
 
 /** Transformations. 'none' is the ordinary kid. */
 export type Form = 'none' | 'star' | 'mushroom';
@@ -43,6 +45,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private jumpCutUsed = true;
   private runFrameTimer = 0;
   private runFrame = 0;
+  private lastAttackAt = -Infinity;
 
   /** Set by the scene when the player is standing on ice. */
   onIce = false;
@@ -53,17 +56,33 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
 
     this.skin = skin;
+    this.hp = this.maxHp;
     this.setOrigin(0.5, 1);
     this.setDepth(20);
 
+    const def = this.skinDef;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(PLAYER.width, PLAYER.height);
-    body.setOffset((48 - PLAYER.width) / 2, 62 - PLAYER.height);
+    body.setSize(def.bodyW, def.bodyH);
+    body.setOffset((def.texW - def.bodyW) / 2, def.texH - def.bodyH);
     body.setMaxVelocityY(PHYSICS.maxFallSpeed);
     body.setCollideWorldBounds(false);
   }
 
   // -- Queries --------------------------------------------------------------
+
+  private get skinDef(): SkinDef {
+    return SKINS[this.skin];
+  }
+
+  /** The current skin's max HP. Mushroom form does not change this. */
+  get maxHp(): number {
+    return this.skinDef.maxHp;
+  }
+
+  /** The current skin's E attack, if it has one. */
+  get attackDef(): SkinAttack | undefined {
+    return this.skinDef.attack;
+  }
 
   get isAlive(): boolean {
     return this.hp > 0 && this.active;
@@ -105,11 +124,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   private get currentRunSpeed(): number {
-    return this.form === 'mushroom' ? MUSHROOM.runSpeed : PLAYER.runSpeed;
+    return this.form === 'mushroom' ? MUSHROOM.runSpeed : this.skinDef.runSpeed;
   }
 
   private get currentJumpVelocity(): number {
-    return this.form === 'mushroom' ? MUSHROOM.jumpVelocity : PLAYER.jumpVelocity;
+    return this.form === 'mushroom' ? MUSHROOM.jumpVelocity : this.skinDef.jumpVelocity;
   }
 
   // -- Input ----------------------------------------------------------------
@@ -151,7 +170,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Ice keeps your momentum: much less grip, much less braking.
     const grip = this.onIce && grounded ? 0.25 : 1;
 
-    if (left && !right) {
+    // Shellcracker's costume walks backwards when both directions are held —
+    // today that combination means no movement for everyone else.
+    const shellBackwards = this.skin === 'shellcracker' && left && right;
+
+    if (shellBackwards) {
+      body.setAccelerationX(0);
+      body.setDragX(0);
+      body.setMaxVelocity(SHELLCRACKER_BACKWARDS_SPEED, PHYSICS.maxFallSpeed);
+      body.setVelocityX(-this.facing * SHELLCRACKER_BACKWARDS_SPEED);
+    } else if (left && !right) {
       this.facing = -1;
       body.setAccelerationX(-PLAYER.accel * control * grip);
     } else if (right && !left) {
@@ -160,9 +188,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     } else {
       body.setAccelerationX(0);
     }
-    // Only brake when no direction is held — ice barely brakes at all.
-    body.setDragX(left !== right ? 0 : PLAYER.drag * (this.onIce && grounded ? 0.12 : 1));
-    body.setMaxVelocity(speedCap, PHYSICS.maxFallSpeed);
+    if (!shellBackwards) {
+      // Only brake when no direction is held — ice barely brakes at all.
+      body.setDragX(left !== right ? 0 : PLAYER.drag * (this.onIce && grounded ? 0.12 : 1));
+      body.setMaxVelocity(speedCap, PHYSICS.maxFallSpeed);
+    }
 
     // Jump: coyote time off a ledge, plus a buffered press before landing.
     const wantsJump = now - this.jumpPressedAt <= PLAYER.jumpBufferMs;
@@ -218,6 +248,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     return null;
+  }
+
+  /** True if the current skin has an E attack, off cooldown, and it can act. */
+  canAttack(now: number): boolean {
+    if (this.isFrozen || !this.isAlive) return false;
+    const atk = this.attackDef;
+    if (!atk) return false;
+    return now - this.lastAttackAt >= atk.cooldownMs;
+  }
+
+  /** Call once an E attack has actually been carried out. */
+  recordAttack(now: number): void {
+    this.lastAttackAt = now;
   }
 
   // -- State changes --------------------------------------------------------
@@ -285,7 +328,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   heal(amount: number): void {
-    this.hp = Math.min(PLAYER.maxHp, this.hp + amount);
+    this.hp = Math.min(this.maxHp, this.hp + amount);
   }
 
   /** Returns true if the hit actually landed (i.e. not blocked by i-frames). */
@@ -323,7 +366,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   resetForRespawn(x: number, feetY: number): void {
     this.clearForm();
-    this.hp = PLAYER.maxHp;
+    this.hp = this.maxHp;
     this.setPosition(x, feetY);
     this.setAlpha(1);
     this.setActive(true);
@@ -339,6 +382,21 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.airJumpsLeft = this.airJumpAllowance;
     this.jumpCutUsed = true;
     if (this.boughtForm) this.transform(this.boughtForm, BOUGHT_FORM_MS);
+  }
+
+  /**
+   * Switches skin in place — texture, body size and stats. The caller (the
+   * scene) is responsible for checking the new body will not overlap a solid
+   * first; this just applies the change.
+   */
+  setSkin(skin: SkinId): void {
+    this.skin = skin;
+    const def = this.skinDef;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(def.bodyW, def.bodyH);
+    body.setOffset((def.texW - def.bodyW) / 2, def.texH - def.bodyH);
+    this.hp = Math.min(this.hp, def.maxHp);
+    this.setTexture(this.frame0(body.blocked.down || body.touching.down ? 'idle' : 'jump'));
   }
 
   // -- Presentation ---------------------------------------------------------

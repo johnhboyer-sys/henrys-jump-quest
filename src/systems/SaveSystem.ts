@@ -1,6 +1,6 @@
 import { SAVE_KEY, LIVES } from '../config/game';
 import { BOUGHT_FORM_LEVELS, type ShopItem } from '../config/shop';
-import type { SkinId } from '../entities/Player';
+import { SKINS, type SkinId } from '../config/skins';
 
 export interface SaveData {
   /** Highest level the player may pick from the menu. */
@@ -17,6 +17,10 @@ export interface SaveData {
   /** Levels left on a bought Super Star / God Mushroom. Count down on each clear. */
   starLevels: number;
   mushroomLevels: number;
+  /** Skins bought forever. */
+  ownedSkins: SkinId[];
+  /** Skins currently rented, levels left. Deleted from here at 0. */
+  skinRentals: Partial<Record<SkinId, number>>;
 }
 
 const EMPTY: SaveData = {
@@ -29,10 +33,16 @@ const EMPTY: SaveData = {
   nextHeld: null,
   starLevels: 0,
   mushroomLevels: 0,
+  ownedSkins: [],
+  skinRentals: {},
 };
 
 function blank(): SaveData {
-  return { ...EMPTY, bestScores: {} };
+  return { ...EMPTY, bestScores: {}, ownedSkins: [], skinRentals: {} };
+}
+
+function isSkinId(id: unknown): id is SkinId {
+  return typeof id === 'string' && id in SKINS;
 }
 
 export function loadSave(): SaveData {
@@ -41,6 +51,13 @@ export function loadSave(): SaveData {
     if (!raw) return blank();
     const p = JSON.parse(raw) as Partial<SaveData>;
     const cleared = p.clearedLevel ?? 0;
+    const ownedSkins = Array.isArray(p.ownedSkins) ? p.ownedSkins.filter(isSkinId) : [];
+    const skinRentals: Partial<Record<SkinId, number>> = {};
+    if (p.skinRentals && typeof p.skinRentals === 'object') {
+      for (const [k, v] of Object.entries(p.skinRentals)) {
+        if (isSkinId(k) && typeof v === 'number' && v > 0) skinRentals[k] = v;
+      }
+    }
     return {
       // Never below "everything you have finished, plus the next one".
       unlockedLevel: Math.max(p.unlockedLevel ?? 1, cleared + 1, 1),
@@ -48,10 +65,12 @@ export function loadSave(): SaveData {
       bestScores: p.bestScores ?? {},
       totalCoins: p.totalCoins ?? 0,
       oneUps: Math.min(p.oneUps ?? 0, LIVES.maxBanked),
-      skin: p.skin === 'henry' ? 'henry' : 'tom',
+      skin: isSkinId(p.skin) ? p.skin : 'tom',
       nextHeld: p.nextHeld === 'fireball' || p.nextHeld === 'cloud' ? p.nextHeld : null,
       starLevels: Math.max(0, p.starLevels ?? 0),
       mushroomLevels: Math.max(0, p.mushroomLevels ?? 0),
+      ownedSkins,
+      skinRentals,
     };
   } catch {
     // A corrupt or blocked localStorage must never stop the game starting.
@@ -77,12 +96,52 @@ export function recordLevelClear(levelId: number, score: number, coins: number):
   save.nextHeld = null;
   save.starLevels = Math.max(0, save.starLevels - 1);
   save.mushroomLevels = Math.max(0, save.mushroomLevels - 1);
+  // Every active rental counts down by one, regardless of which skin was
+  // actually worn this level — tracking per-skin play-time is more machinery
+  // than a kid's shop needs.
+  for (const id of Object.keys(save.skinRentals) as SkinId[]) {
+    const left = (save.skinRentals[id] ?? 0) - 1;
+    if (left <= 0) delete save.skinRentals[id];
+    else save.skinRentals[id] = left;
+  }
   writeSave(save);
   return save;
 }
 
+/** Which boss must be beaten before Big Bob will sell that boss's skin. */
+const BOSS_UNLOCK: Partial<Record<SkinId, { level: number; name: string }>> = {
+  shellcracker: { level: 3, name: 'Shellcracker' },
+  galacticRaider: { level: 5, name: 'the Galactic Raider' },
+};
+
+/** Every skin the player may currently wear. `levelId` unlocks a boss's own skin for free while replaying its level. */
+export function availableSkins(save: SaveData, levelId?: number): SkinId[] {
+  const list: SkinId[] = ['tom', 'henry'];
+  if (save.ownedSkins.includes('james') || (save.skinRentals.james ?? 0) > 0) list.push('james');
+  if (save.ownedSkins.includes('nurse') || (save.skinRentals.nurse ?? 0) > 0) list.push('nurse');
+  if (save.clearedLevel >= 5) list.push('tinyGuy');
+  if (save.ownedSkins.includes('shellcracker') || (levelId === 3 && save.clearedLevel >= 3)) {
+    list.push('shellcracker');
+  }
+  if (save.ownedSkins.includes('galacticRaider') || (levelId === 5 && save.clearedLevel >= 5)) {
+    list.push('galacticRaider');
+  }
+  return list;
+}
+
 /** Why an item cannot be bought right now, or null if it can. */
 export function blockedReason(save: SaveData, item: ShopItem): string | null {
+  if (item.kind === 'skin') {
+    const owned = save.ownedSkins.includes(item.skin);
+    const rented = (save.skinRentals[item.skin] ?? 0) > 0;
+    const req = BOSS_UNLOCK[item.skin];
+    if (req && save.clearedLevel < req.level && !owned) return `Beat ${req.name} first!`;
+    if (owned) return 'You already own it!';
+    if (item.mode === 'rent' && rented) return `You already have ${SKINS[item.skin].label}!`;
+    if (save.totalCoins < item.price) return 'Not enough coins!';
+    return null;
+  }
+
   // A Star and a Mushroom cannot both run, so only one is ever bought at a time.
   if (item.id === 'star' && save.mushroomLevels > 0) return 'Your God Mushroom is still going!';
   if (item.id === 'mushroom' && save.starLevels > 0) return 'Your Super Star is still going!';
@@ -102,9 +161,32 @@ export function buyItem(item: ShopItem): SaveData | null {
   const save = loadSave();
   if (blockedReason(save, item)) return null;
   save.totalCoins -= item.price;
-  if (item.id === 'star') save.starLevels = BOUGHT_FORM_LEVELS.star;
-  else if (item.id === 'mushroom') save.mushroomLevels = BOUGHT_FORM_LEVELS.mushroom;
-  else save.nextHeld = item.id;
+
+  if (item.kind === 'skin') {
+    if (item.mode === 'own') {
+      if (!save.ownedSkins.includes(item.skin)) save.ownedSkins.push(item.skin);
+      delete save.skinRentals[item.skin];
+    } else {
+      save.skinRentals[item.skin] = item.levels ?? 0;
+    }
+    // Buying a skin puts it on straight away.
+    save.skin = item.skin;
+  } else if (item.id === 'star') {
+    save.starLevels = BOUGHT_FORM_LEVELS.star;
+  } else if (item.id === 'mushroom') {
+    save.mushroomLevels = BOUGHT_FORM_LEVELS.mushroom;
+  } else {
+    save.nextHeld = item.id;
+  }
+  writeSave(save);
+  return save;
+}
+
+/** Spend coins outside the shop (the Nurse's heal). Returns the new save, or null if short. */
+export function spendCoins(amount: number): SaveData | null {
+  const save = loadSave();
+  if (save.totalCoins < amount) return null;
+  save.totalCoins -= amount;
   writeSave(save);
   return save;
 }
