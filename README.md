@@ -1,8 +1,8 @@
 # Jump Quest
 
 A 2D side-scrolling platformer built from Henry and Tom's brainstorm.
-Five levels, four enemies, six power-ups, two bosses, eight playable skins,
-two difficulty modes and a bonus rematch hole.
+Eleven levels, five enemies, seven power-ups, five bosses, eight playable
+skins, two difficulty modes and a bonus rematch hole.
 
 ## Run it
 
@@ -96,7 +96,7 @@ and a banked 1-UP is spent automatically to save the run first.
   health, and after that it hits like an ordinary attack.
 - **God Mushroom** — 12 seconds as an enormous angry toadstool: invincible,
   faster, a much higher jump, a free double jump, and triple damage.
-- **1-UP** — an extra life. Only ever found in boss arenas.
+- **1-UP** — an extra life. Found in boss arenas, or rolled by a random block.
 - **Kitty Suit** — held, not instant. ↓ scratches in front of you (the same
   kind of swing as a skin's E attack), taking an eighth of the target's max
   HP. Unlimited uses, a short cooldown between them, and **no good against
@@ -164,8 +164,9 @@ no re-lock penalty.
 
 **God Tom** — Boo's, not Big Bob's: listed in the shop from the very start,
 10,000 coins, so it is a visible goal from the first time you open the shop.
-Free the moment `clearedLevel` reaches the last level in `LEVELS`, whatever
-the price says. Buying or claiming it owns it forever. Base stats are Tom's.
+Once `clearedLevel` reaches the last level in `LEVELS` he unlocks by himself,
+like Tiny Guy after level 5 — no trip to the shop needed. Buying him owns him
+forever. Base stats are Tom's.
 
 - **Kill stacking** — every kill while wearing God Tom adds a stack of that
   enemy's own stats for 9 seconds: its max HP (added to both your max and
@@ -191,13 +192,16 @@ the price says. Buying or claiming it owns it forever. Base stats are Tom's.
   10 HP. Stompable.
 - **Butterfly** — flies overhead and drips sticky rain. 1 HP, but it pins you
   in place for a moment.
+- **Kitty** — patrols, then dashes at you when you come close. Its scratch
+  takes an eighth of your health (13 of Tom's 100). Stompable.
 
 **Hazards** — rings of icicles spinning on a fixed point. Touching one takes
 5 HP and freezes you briefly.
 
 **Bosses**
 
-**Shellcracker**, 1,000 HP. Alternates two loudly telegraphed attacks:
+**Shellcracker**, 1,010 HP (Henry raised it from 1,000; `hitsToKill` is still
+16, so the fight is the same length). Alternates two loudly telegraphed attacks:
 arcing shells that can reach the side ledges, and a stream of fire along the
 ground that cannot. So the floor is safe from shells and exposed to fire, and
 the ledges are the other way round — that trade is the fight. Halfway down it
