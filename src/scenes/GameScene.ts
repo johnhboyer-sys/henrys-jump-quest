@@ -240,7 +240,11 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.scene.launch('UI', { levelName: `${level.id}. ${level.name}`, levelId: level.id });
     this.emitHud();
 
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scene.stop('UI'));
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scene.stop('UI');
+      // Never leave the hole picker running over a level that has gone.
+      this.scene.stop('Hole');
+    });
   }
 
   // -- Building -------------------------------------------------------------
@@ -414,7 +418,9 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     // R sits right next to the WASD keys.
     kb.on('keydown-ESC', () => this.togglePause());
     kb.on('keydown-R', (ev: KeyboardEvent) => {
-      if (!ev.shiftKey || ev.ctrlKey || ev.metaKey) return;
+      // Not while the hole picker is open: it is a separate scene on top, and a
+      // restart underneath it would leave the picker running.
+      if (!ev.shiftKey || ev.ctrlKey || ev.metaKey || this.holeOpen) return;
       this.scene.restart({ levelId: this.level.id });
     });
   }
@@ -445,10 +451,14 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       this.pausedAt = this.time.now;
       this.physics.world.pause();
       this.time.paused = true;
+      // Tweens too: an enemy's attack can hang off a tween's onComplete (the
+      // mushroom's squash tell fires its spore), and tweens ignore the clock.
+      this.tweens.pauseAll();
       this.events.emit('pause', { levelName: this.level.name, levelId: this.level.id });
     } else {
       const pausedMs = Math.max(0, this.time.now - this.pausedAt);
       this.time.paused = false;
+      this.tweens.resumeAll();
       this.physics.world.resume();
       this.shiftAllTimers(pausedMs);
       this.events.emit('resume');
@@ -469,6 +479,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.pausedAt = this.time.now;
     this.physics.world.pause();
     this.time.paused = true;
+    this.tweens.pauseAll();
     this.scene.launch('Hole', { originLevelId: this.level.id });
     this.scene.bringToTop('Hole');
   }
@@ -479,6 +490,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.holeOpen = false;
     this.paused = false;
     this.time.paused = false;
+    this.tweens.resumeAll();
     this.physics.world.resume();
     this.shiftAllTimers(pausedMs);
   }
@@ -495,6 +507,8 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   private shiftAllTimers(ms: number): void {
     if (ms <= 0) return;
     this.player.shiftTimers(ms);
+    // The star/mushroom boss-contact cooldown, or a pause would hand out a free hit.
+    this.bossContactAt += ms;
     this.boss?.shiftTimers(ms);
     for (const obj of this.enemies.getChildren()) (obj as Enemy).shiftTimers(ms);
     for (const obj of this.playerShots.getChildren()) (obj as Projectile).shiftTimers(ms);
@@ -525,6 +539,8 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (!this.bodyFits(skinId, this.player.x, this.player.y)) {
       return { ok: false, reason: "That skin won't fit here!" };
     }
+    // Only God Tom can hold or throw an enemy, so a switch puts it down.
+    this.dropCarriedEnemy();
     this.player.setSkin(skinId);
     setSkin(skinId);
     this.emitHud();
@@ -974,7 +990,9 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       if (!enemy.active || enemy.elite || this.thrownEnemies.has(enemy)) continue;
       const ahead = (enemy.x - originX) * dir;
       if (ahead < -20 || ahead > GOD_TOM.pickupRangePx) continue;
-      const dist = Math.abs(enemy.x - this.player.x);
+      // Feet to feet in both directions, so an enemy on another floor or a
+      // butterfly overhead is out of reach even when it is straight above.
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
       if (dist < bestDist) {
         bestDist = dist;
         best = enemy;
@@ -1000,6 +1018,8 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (!enemy) return;
     this.carriedEnemy = undefined;
     if (!enemy.active) return;
+    // Set it down in front, not on the kid's head.
+    enemy.setPosition(this.player.x + this.player.facing * 70, this.player.y);
     enemy.held = false;
     (enemy.body as Phaser.Physics.Arcade.Body).enable = true;
   }
