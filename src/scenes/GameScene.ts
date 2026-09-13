@@ -536,6 +536,9 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (!availableSkins(save, this.level.id).includes(skinId)) {
       return { ok: false, reason: "You don't have that skin." };
     }
+    // Picking the skin you already wear changes nothing — and must not make
+    // God Tom put down what he is carrying.
+    if (skinId === this.player.skin) return { ok: true };
     if (!this.bodyFits(skinId, this.player.x, this.player.y)) {
       return { ok: false, reason: "That skin won't fit here!" };
     }
@@ -1012,16 +1015,43 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.carriedEnemy.setPosition(this.player.x, this.player.y - PLAYER.height - 26);
   }
 
-  /** Dropped mid-carry (death, or a fresh level): hand the enemy its AI back. */
+  /**
+   * Dropped mid-carry (a skin switch, death, or a fresh level): set the enemy
+   * down and hand its AI back. Never on the kid's head, never inside a wall
+   * and never over a pit — if there is no fair spot, it puffs away instead.
+   */
   private dropCarriedEnemy(): void {
     const enemy = this.carriedEnemy;
     if (!enemy) return;
     this.carriedEnemy = undefined;
     if (!enemy.active) return;
-    // Set it down in front, not on the kid's head.
-    enemy.setPosition(this.player.x + this.player.facing * 70, this.player.y);
+    const spot = this.findDropSpot(enemy);
+    if (!spot) {
+      enemy.die();
+      return;
+    }
+    enemy.setPosition(spot.x, spot.y);
     enemy.held = false;
     (enemy.body as Phaser.Physics.Arcade.Body).enable = true;
+  }
+
+  /** 70px in front, else 70px behind: inside the level, clear of solids, and on a floor. */
+  private findDropSpot(enemy: Enemy): { x: number; y: number } | undefined {
+    const w = enemy.def.bodyWidth;
+    const h = enemy.def.bodyHeight;
+    const feetY = this.player.y;
+    for (const side of [1, -1]) {
+      const x = this.player.x + this.player.facing * side * 70;
+      if (x - w / 2 < 0 || x + w / 2 > this.level.worldWidth) continue;
+      // Same small inset as bodyFits, so touching the floor is not "blocked".
+      if (this.physics.overlapRect(x - w / 2 + 3, feetY - h + 3, w - 6, h - 6, false, true).length > 0) {
+        continue;
+      }
+      const floored =
+        enemy.def.flies || this.physics.overlapRect(x - w / 2, feetY + 1, w, 8, false, true).length > 0;
+      if (floored) return { x, y: feetY };
+    }
+    return undefined;
   }
 
   private throwCarriedEnemy(): void {
