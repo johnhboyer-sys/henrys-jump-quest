@@ -52,6 +52,11 @@ export class Shellcracker extends BossBase {
     this.puffFire();
   }
 
+  override shiftTimers(ms: number): void {
+    super.shiftTimers(ms);
+    this.breathTickAt += ms;
+  }
+
   private throwShells(): void {
     const shell = ENEMY_PROJECTILE.shell;
     const dir = this.flipX ? -1 : 1;

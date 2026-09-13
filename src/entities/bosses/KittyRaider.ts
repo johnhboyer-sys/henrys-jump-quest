@@ -16,7 +16,6 @@ export class KittyRaider extends BossBase {
   private order = ['furballs', 'scratch', 'screech'];
   private orderIndex = 0;
   private scratchArc?: Phaser.GameObjects.Image;
-  private screechStunUntil = 0;
 
   private startedKitties = false;
   private lastKnownAliveKitties = 0;
@@ -28,6 +27,8 @@ export class KittyRaider extends BossBase {
   preUpdate(time: number, delta: number): void {
     super.preUpdate(time, delta);
     if (!this.active || this.isDead || !this.world) return;
+    // Frozen while the scene is paused — see BossBase.shiftTimers.
+    if (this.scene.time.paused) return;
 
     if (!this.startedKitties) {
       this.startedKitties = true;
@@ -72,14 +73,10 @@ export class KittyRaider extends BossBase {
   }
 
   protected launchAttack(name: string, time: number): number {
+    void time;
     if (name === 'furballs') return this.furballs();
     if (name === 'scratch') return this.scratch();
-    return this.screech(time);
-  }
-
-  protected duringAttack(name: string, time: number): void {
-    if (name !== 'screech') return;
-    if (time < this.screechStunUntil) this.world.player.applyStatus('freeze');
+    return this.screech();
   }
 
   /** A fan of three furballs, 50 damage each. */
@@ -142,13 +139,15 @@ export class KittyRaider extends BossBase {
   }
 
   /**
-   * Stuns the player for 3s, wherever they are — it cannot be dodged. The
-   * hold covers the stun plus John's fairness buffer, so nothing else she
-   * does can start any sooner than that.
+   * Stuns the player for exactly Henry's 3 seconds, wherever they are — it
+   * cannot be dodged. Applied once, for the full duration, rather than
+   * reapplied every frame the stun is up: Player.applyStatus defaults to the
+   * much shorter icicle freeze, so a per-frame reapplication used to tack an
+   * extra ~900ms onto the end. The hold covers the stun plus John's fairness
+   * buffer, so nothing else she does can start any sooner than that.
    */
-  private screech(time: number): number {
-    this.screechStunUntil = time + KITTY_RAIDER_ATTACKS.screechStunMs;
-    this.world.player.applyStatus('freeze');
+  private screech(): number {
+    this.world.player.applyStatus('freeze', KITTY_RAIDER_ATTACKS.screechStunMs);
     this.floatText('SCREECH!', '#ff7a4d');
     this.scene.cameras.main.shake(300, 0.01);
     return KITTY_RAIDER_ATTACKS.screechStunMs + KITTY_RAIDER_ATTACKS.screechFairnessBufferMs;

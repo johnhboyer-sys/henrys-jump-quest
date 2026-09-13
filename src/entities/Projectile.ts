@@ -87,9 +87,17 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     });
   }
 
+  /** Called by the scene on resume, so a lifetime frozen mid-pause keeps the
+   * time it had left rather than expiring the instant the clock unfreezes. */
+  shiftTimers(ms: number): void {
+    this.dieAt += ms;
+  }
+
   preUpdate(time: number, delta: number): void {
     super.preUpdate(time, delta);
     if (!this.active) return;
+    // Frozen while the scene is paused — see shiftTimers.
+    if (this.scene.time.paused) return;
     if (time > this.dieAt) {
       this.pop();
       return;

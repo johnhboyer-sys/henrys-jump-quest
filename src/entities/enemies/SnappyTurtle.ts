@@ -14,6 +14,11 @@ export class SnappyTurtle extends Enemy {
     super(scene, spawn, ENEMIES.snappyTurtle, elite);
   }
 
+  override shiftTimers(ms: number): void {
+    super.shiftTimers(ms);
+    this.lungeUntil += ms;
+  }
+
   protected behave(time: number): void {
     const body = this.body as Phaser.Physics.Arcade.Body;
     const p = this.world.player;

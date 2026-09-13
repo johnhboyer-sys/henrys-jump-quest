@@ -62,6 +62,11 @@ export class ShellcrackerDad extends BossBase {
     this.puffFire();
   }
 
+  override shiftTimers(ms: number): void {
+    super.shiftTimers(ms);
+    this.breathTickAt += ms;
+  }
+
   /** A straight, fast line of bolts toward the player. */
   private laserEyes(): number {
     const laser = ENEMY_PROJECTILE.laser;

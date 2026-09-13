@@ -19,6 +19,11 @@ export class Kitty extends Enemy {
     super(scene, spawn, ENEMIES.kitty, elite);
   }
 
+  override shiftTimers(ms: number): void {
+    super.shiftTimers(ms);
+    this.pausedUntil += ms;
+  }
+
   protected behave(time: number): void {
     const body = this.body as Phaser.Physics.Arcade.Body;
 
