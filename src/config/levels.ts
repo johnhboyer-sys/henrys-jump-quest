@@ -11,7 +11,7 @@
  */
 
 import type { EnemyKind } from './enemies';
-import type { PowerUpKind } from './powerups';
+import type { BlockContent, PowerUpKind } from './powerups';
 
 export const FLOOR_Y = 640;
 export const DEATH_Y = 800;
@@ -40,7 +40,7 @@ export interface BlockDef {
   /** Centre of the block. */
   x: number;
   y: number;
-  contains: PowerUpKind;
+  contains: BlockContent;
 }
 
 export interface CoinDef {

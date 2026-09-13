@@ -1,6 +1,14 @@
-import { SAVE_KEY, LIVES } from '../config/game';
+import { SAVE_KEY, SAVE_KEY_NI, LIVES } from '../config/game';
+import { LEVELS } from '../config/levels';
 import { BOUGHT_FORM_LEVELS, type ShopItem } from '../config/shop';
 import { SKINS, type SkinId } from '../config/skins';
+import { getMode } from './ModeSystem';
+
+/** Normal and Nearly Impossible are fully separate saves — unlocks, scores,
+ * coins, skins, everything. Every read/write below goes through this. */
+function currentSaveKey(): string {
+  return getMode() === 'nearlyImpossible' ? SAVE_KEY_NI : SAVE_KEY;
+}
 
 export interface SaveData {
   /** Highest level the player may pick from the menu. */
@@ -47,7 +55,7 @@ function isSkinId(id: unknown): id is SkinId {
 
 export function loadSave(): SaveData {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = localStorage.getItem(currentSaveKey());
     if (!raw) return blank();
     const p = JSON.parse(raw) as Partial<SaveData>;
     const cleared = p.clearedLevel ?? 0;
@@ -80,7 +88,7 @@ export function loadSave(): SaveData {
 
 export function writeSave(data: SaveData): void {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    localStorage.setItem(currentSaveKey(), JSON.stringify(data));
   } catch {
     /* Private browsing, quota, whatever — losing progress beats crashing. */
   }
@@ -126,7 +134,18 @@ export function availableSkins(save: SaveData, levelId?: number): SkinId[] {
   if (save.ownedSkins.includes('galacticRaider') || (levelId === 5 && save.clearedLevel >= 5)) {
     list.push('galacticRaider');
   }
+  if (save.ownedSkins.includes('godTom')) list.push('godTom');
   return list;
+}
+
+/** The last level's id — beating it is what makes God Tom free. */
+function lastLevelId(): number {
+  return LEVELS[LEVELS.length - 1].id;
+}
+
+/** True once the game itself has been beaten, in the current mode's save. */
+export function hasBeatenGame(save: SaveData): boolean {
+  return save.clearedLevel >= lastLevelId();
 }
 
 /** Why an item cannot be bought right now, or null if it can. */
@@ -138,6 +157,8 @@ export function blockedReason(save: SaveData, item: ShopItem): string | null {
     if (req && save.clearedLevel < req.level && !owned) return `Beat ${req.name} first!`;
     if (owned) return 'You already own it!';
     if (item.mode === 'rent' && rented) return `You already have ${SKINS[item.skin].label}!`;
+    // God Tom is free once the game has been beaten, whatever it costs.
+    if (item.skin === 'godTom' && hasBeatenGame(save)) return null;
     if (save.totalCoins < item.price) return 'Not enough coins!';
     return null;
   }
@@ -160,7 +181,9 @@ export function blockedReason(save: SaveData, item: ShopItem): string | null {
 export function buyItem(item: ShopItem): SaveData | null {
   const save = loadSave();
   if (blockedReason(save, item)) return null;
-  save.totalCoins -= item.price;
+  // God Tom is free once the game has been beaten — nothing to spend.
+  const free = item.kind === 'skin' && item.skin === 'godTom' && hasBeatenGame(save);
+  if (!free) save.totalCoins -= item.price;
 
   if (item.kind === 'skin') {
     if (item.mode === 'own') {

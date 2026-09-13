@@ -1,12 +1,16 @@
 import Phaser from 'phaser';
-import type { PowerUpKind } from '../config/powerups';
+import { rollRandomPowerUp, type BlockContent, type PowerUpKind } from '../config/powerups';
 
 /**
  * Hit it from below and something comes out. Solid from every side.
  * Blocks in a boss arena can refill themselves so the fight never dead-ends.
+ *
+ * `contains: 'random'` (Nearly Impossible mode) rolls a fresh power-up every
+ * time it pays out, including on a refill — `bump()` always returns a real
+ * `PowerUpKind`, never 'random' itself.
  */
 export class QuestionBlock extends Phaser.Physics.Arcade.Sprite {
-  readonly contains: PowerUpKind;
+  readonly contains: BlockContent;
   private spent = false;
   private bumps = 0;
   private readonly homeY: number;
@@ -16,7 +20,7 @@ export class QuestionBlock extends Phaser.Physics.Arcade.Sprite {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    contains: PowerUpKind,
+    contains: BlockContent,
     refillMs?: number,
   ) {
     super(scene, x, y, 'block-question');
@@ -37,12 +41,14 @@ export class QuestionBlock extends Phaser.Physics.Arcade.Sprite {
     return this.bumps;
   }
 
-  /** Returns what popped out, or null if the block was already empty. */
+  /** Returns what popped out, or null if the block was already empty. Never
+   * returns 'random' — a random block resolves to a real kind on every payout. */
   bump(): PowerUpKind | null {
     if (this.spent) return null;
     this.spent = true;
     this.bumps += 1;
     this.setTexture('block-used');
+    const resolved: PowerUpKind = this.contains === 'random' ? rollRandomPowerUp() : this.contains;
 
     // The classic nudge upwards.
     this.scene.tweens.add({
@@ -65,6 +71,6 @@ export class QuestionBlock extends Phaser.Physics.Arcade.Sprite {
       });
     }
 
-    return this.contains;
+    return resolved;
   }
 }

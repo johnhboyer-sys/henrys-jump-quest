@@ -4,6 +4,7 @@ import { LEVELS } from '../config/levels';
 import { loadSave, setSkin, availableSkins, type SaveData } from '../systems/SaveSystem';
 import { toggleMute, isMuted, play } from '../systems/SoundSystem';
 import { SKINS, type SkinId } from '../config/skins';
+import { getMode, setMode, type GameMode } from '../systems/ModeSystem';
 
 const FONT = 'monospace';
 
@@ -18,6 +19,9 @@ export class MenuScene extends Phaser.Scene {
   private hero!: Phaser.GameObjects.Image;
   private skinText!: Phaser.GameObjects.Text;
   private oneUpText!: Phaser.GameObjects.Text;
+  private mode: GameMode = 'normal';
+  private modeNormalText!: Phaser.GameObjects.Text;
+  private modeHardText!: Phaser.GameObjects.Text;
 
   constructor() {
     super('Menu');
@@ -27,6 +31,7 @@ export class MenuScene extends Phaser.Scene {
     const cx = VIEW.width / 2;
     this.rows = [];
     this.selected = 0;
+    this.mode = getMode();
 
     // Sky and hills, so the menu looks like the game rather than a form.
     const g = this.add.graphics();
@@ -63,50 +68,74 @@ export class MenuScene extends Phaser.Scene {
     });
 
     this.add
-      .text(cx, 96, 'JUMP QUEST', {
+      .text(cx, 56, 'JUMP QUEST', {
         fontFamily: FONT,
-        fontSize: '74px',
+        fontSize: '62px',
         color: '#ffe27a',
         stroke: '#000000',
-        strokeThickness: 10,
+        strokeThickness: 9,
       })
       .setOrigin(0.5);
 
     this.add
-      .text(cx, 152, 'Henry and Tom vs. Shellcracker', {
+      .text(cx, 98, 'Henry and Tom vs. Shellcracker', {
         fontFamily: FONT,
-        fontSize: '22px',
+        fontSize: '18px',
         color: '#9fd8f0',
       })
       .setOrigin(0.5);
 
+    // Mode selector: ← → switches between Normal and Nearly Impossible, each
+    // with its own fully separate save.
+    const modeY = 126;
+    this.modeNormalText = this.add
+      .text(cx - 16, modeY, 'NORMAL', { fontFamily: FONT, fontSize: '20px' })
+      .setOrigin(1, 0.5);
+    this.modeHardText = this.add
+      .text(cx + 16, modeY, 'NEARLY IMPOSSIBLE', { fontFamily: FONT, fontSize: '20px' })
+      .setOrigin(0, 0.5);
+    this.refreshMode();
+
     this.unlocked = save.unlockedLevel;
+
+    // Adaptive grid: one column up to 6 levels, two columns beyond that, so
+    // the list never overlaps the rest of the menu regardless of how many
+    // levels LEVELS holds.
+    const columns = LEVELS.length > 6 ? 2 : 1;
+    const rowsPerCol = Math.ceil(LEVELS.length / columns);
+    const rowH = 28;
+    const gridTop = 158;
+    const colX = columns === 1 ? [cx] : [cx - 260, cx + 260];
+    const rowFontSize = columns === 1 ? '24px' : '18px';
 
     LEVELS.forEach((level, i) => {
       const locked = level.id > this.unlocked;
       const best = save.bestScores[level.id];
       const label = locked
         ? `${level.id}. ??? — locked`
-        : `${level.id}. ${level.name}${best ? `   best ${best}` : ''}`;
-      const row = this.add
-        .text(cx, 210 + i * 38, label, {
+        : `${level.id}. ${level.name}${best ? `  best ${best}` : ''}`;
+      const col = Math.floor(i / rowsPerCol);
+      const row = i % rowsPerCol;
+      const rowText = this.add
+        .text(colX[col], gridTop + row * rowH, label, {
           fontFamily: FONT,
-          fontSize: '24px',
+          fontSize: rowFontSize,
           color: locked ? '#6b7385' : '#ffffff',
         })
         .setOrigin(0.5);
-      this.rows.push(row);
-      void i;
+      this.rows.push(rowText);
     });
 
+    const gridBottom = gridTop + (rowsPerCol - 1) * rowH + 24;
+
     this.skinText = this.add
-      .text(cx, 416, '', { fontFamily: FONT, fontSize: '20px', color: '#ffe27a' })
+      .text(cx, gridBottom + 24, '', { fontFamily: FONT, fontSize: '20px', color: '#ffe27a' })
       .setOrigin(0.5);
 
     this.add
-      .text(cx, 446, '↑ ↓ choose level    ENTER start    S skin    M mute', {
+      .text(cx, gridBottom + 54, '↑ ↓ choose level   ← → mode   ENTER start   S skin   M mute', {
         fontFamily: FONT,
-        fontSize: '17px',
+        fontSize: '16px',
         color: '#cfd9e8',
       })
       .setOrigin(0.5);
@@ -114,11 +143,11 @@ export class MenuScene extends Phaser.Scene {
     this.add
       .text(
         cx,
-        486,
+        gridBottom + 90,
         '← → run    ↑ jump    ↓ use power-up    ESC pause\n' +
           'Cloud = double jump    Fireball = throw fire\n' +
           'Star and God Mushroom make you unstoppable for a while',
-        { fontFamily: FONT, fontSize: '16px', color: '#9fd8f0', align: 'center' },
+        { fontFamily: FONT, fontSize: '15px', color: '#9fd8f0', align: 'center' },
       )
       .setOrigin(0.5);
 
@@ -142,6 +171,8 @@ export class MenuScene extends Phaser.Scene {
     kb.on('keydown-UP', () => this.move(-1));
     kb.on('keydown-DOWN', () => this.move(1));
     kb.on('keydown-W', () => this.move(-1));
+    kb.on('keydown-LEFT', () => this.chooseMode('normal'));
+    kb.on('keydown-RIGHT', () => this.chooseMode('nearlyImpossible'));
     kb.on('keydown-ENTER', () => this.start());
     kb.on('keydown-SPACE', () => this.start());
     kb.on('keydown-S', () => this.swapSkin());
@@ -185,6 +216,22 @@ export class MenuScene extends Phaser.Scene {
 
   private refreshSkin(): void {
     this.skinText.setText(`Playing as ${SKINS[this.skin].label.toUpperCase()}   (press S to swap)`);
+  }
+
+  /** Highlights whichever of Normal / Nearly Impossible is current. */
+  private refreshMode(): void {
+    const isNormal = this.mode === 'normal';
+    this.modeNormalText.setColor(isNormal ? '#ffe27a' : '#6b7385').setScale(isNormal ? 1.08 : 1);
+    this.modeHardText.setColor(!isNormal ? '#ffe27a' : '#6b7385').setScale(!isNormal ? 1.08 : 1);
+  }
+
+  /** ← → on the menu. Normal and Nearly Impossible are fully separate saves,
+   * so switching rebuilds the whole menu against the newly-current one. */
+  private chooseMode(mode: GameMode): void {
+    if (mode === this.mode) return;
+    setMode(mode);
+    play('block');
+    this.scene.restart();
   }
 
   private refreshMute(): void {

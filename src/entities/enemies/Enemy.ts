@@ -41,6 +41,14 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   /** Galactic minions are ordinary enemies wearing the boss's colours. */
   readonly elite: boolean;
 
+  /**
+   * True while God Tom is carrying this enemy overhead or it is in flight
+   * after being thrown. Suppresses `behave()` (no AI while carried/thrown)
+   * without touching `active` — physics and overlaps must keep working on a
+   * thrown enemy so it can still hit things and be despawned normally.
+   */
+  held = false;
+
   constructor(scene: Phaser.Scene, spawn: EnemySpawn, def: EnemyDef, elite = false) {
     super(scene, spawn.x, spawn.y, def.texture);
     scene.add.existing(this);
@@ -150,7 +158,7 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   preUpdate(time: number, delta: number): void {
     super.preUpdate(time, delta);
-    if (!this.active || !this.world) return;
+    if (!this.active || !this.world || this.held) return;
     this.behave(time);
   }
 

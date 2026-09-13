@@ -5,6 +5,7 @@ import { MenuScene } from './scenes/MenuScene';
 import { GameScene } from './scenes/GameScene';
 import { UIScene } from './scenes/UIScene';
 import { ShopScene } from './scenes/ShopScene';
+import { HoleScene } from './scenes/HoleScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -28,7 +29,7 @@ const config: Phaser.Types.Core.GameConfig = {
     pixelArt: false,
     antialias: true,
   },
-  scene: [BootScene, MenuScene, GameScene, UIScene, ShopScene],
+  scene: [BootScene, MenuScene, GameScene, UIScene, ShopScene, HoleScene],
 };
 
 const game = new Phaser.Game(config);

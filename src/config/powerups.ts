@@ -11,7 +11,8 @@ export type PowerUpKind =
   | 'coin'
   | 'star'
   | 'mushroom'
-  | 'oneup';
+  | 'oneup'
+  | 'kittySuit';
 
 export interface PowerUpDef {
   kind: PowerUpKind;
@@ -73,6 +74,39 @@ export const POWERUPS: Record<PowerUpKind, PowerUpDef> = {
     hint: '+1 life',
     instant: true,
   },
+  kittySuit: {
+    kind: 'kittySuit',
+    texture: 'pw-kittysuit',
+    label: 'Kitty Suit',
+    hint: 'DOWN = scratch',
+    instant: false,
+  },
 };
 
 export const HEART_HEAL = 30;
+
+/**
+ * A block's contents. 'random' is Nearly Impossible only — every power-up
+ * block rolls one of the pool below, again on every refill. Exported so level
+ * data can use it directly in Normal mode too (a level can ask for a
+ * "normal random" block without waiting for Nearly Impossible).
+ */
+export type BlockContent = PowerUpKind | 'random';
+
+/**
+ * The pool a 'random' block rolls from. Fireball, Star and Mushroom are the
+ * live rolls Henry asked for; Heart, Cloud and 1-UP are the dud rolls. Equal
+ * weights across all six — placeholder: not Henry's number.
+ */
+export const RANDOM_POWERUP_POOL: PowerUpKind[] = [
+  'fireball',
+  'star',
+  'mushroom',
+  'heart',
+  'cloud',
+  'oneup',
+];
+
+export function rollRandomPowerUp(): PowerUpKind {
+  return RANDOM_POWERUP_POOL[Math.floor(Math.random() * RANDOM_POWERUP_POOL.length)];
+}

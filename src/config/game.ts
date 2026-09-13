@@ -117,3 +117,49 @@ export const COIN_REWARD = {
 } as const;
 
 export const SAVE_KEY = 'henrys-jump-quest-save';
+/** Nearly Impossible mode keeps its own save, entirely separate from Normal. */
+export const SAVE_KEY_NI = 'henrys-jump-quest-save-nearly-impossible';
+/** Which mode was last chosen on the menu. Its own key — not part of a save. */
+export const MODE_KEY = 'henrys-jump-quest-mode';
+
+export type GameMode = 'normal' | 'nearlyImpossible';
+
+/** The Kitty suit's scratch (Down Arrow). Same kind of melee rect as the skins' E attacks. */
+export const KITTY_SUIT = {
+  /** Henry's number: a scratch takes an eighth of the target's max HP. */
+  fraction: 1 / 8,
+  cooldownMs: 250, // placeholder: not Henry's number
+} as const;
+
+/** God Tom: kill-stacking stat gain, and picking up/throwing ordinary enemies. */
+export const GOD_TOM = {
+  price: 10000, // Henry's number
+  /** Henry's number: 9 seconds per stack. */
+  stackDurationMs: 9000,
+  /** What "the enemy's stats" means: full max HP, and this fraction of its speed. */
+  speedFraction: 0.5, // placeholder: not Henry's number
+  pickupRangePx: 80, // placeholder: not Henry's number
+  throwSpeed: 560, // placeholder: not Henry's number
+  throwLifetimeMs: 1500, // placeholder: not Henry's number
+} as const;
+
+/** Nearly Impossible mode's level changes. See src/config/hardMode.ts. */
+export const NEARLY_IMPOSSIBLE = {
+  /** Henry's number: a second copy of every enemy. */
+  enemyCopies: 2,
+  enemyDensityOffsetPx: 90, // placeholder: not Henry's number
+  /** 180 -> 220. Still inside a full-speed jump of ~270px. */
+  gapWidenPx: 40, // placeholder: not Henry's number
+  /** Henry's number: +1000 HP on every boss. */
+  bossHpBonus: 1000,
+} as const;
+
+/** The Moo Moo Cow Mom Hole: a weaker boss rematch at the start of every normal level. */
+export const MOO_MOO = {
+  holeOffsetX: 260, // placeholder: not Henry's number
+  holeBossX: 1800, // placeholder: not Henry's number
+  /** Henry's number: the hole boss has 1000 HP in Normal mode. */
+  normalHoleBossHp: 1000,
+  minHitsToKill: 6, // placeholder: not Henry's number
+  returnBeforeGoalPx: 200, // placeholder: not Henry's number
+} as const;

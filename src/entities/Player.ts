@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PLAYER, PHYSICS, STATUS, CLOUD, FIREBALL, STAR, MUSHROOM } from '../config/game';
+import { PLAYER, PHYSICS, STATUS, CLOUD, FIREBALL, STAR, MUSHROOM, KITTY_SUIT } from '../config/game';
 import type { PowerUpKind } from '../config/powerups';
 import { BOUGHT_FORM_MS } from '../config/shop';
 import { SKINS, SHELLCRACKER_BACKWARDS_SPEED, type SkinAttack, type SkinDef } from '../config/skins';
@@ -46,6 +46,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private runFrameTimer = 0;
   private runFrame = 0;
   private lastAttackAt = -Infinity;
+  private lastScratchAt = -Infinity;
+
+  /** God Tom: one entry per kill while it is stacked, each expiring on its own. */
+  private godTomStacksList: { expiresAt: number; hp: number; speed: number }[] = [];
+  private bonusMaxHp = 0;
+  private bonusRunSpeed = 0;
 
   /** Set by the scene when the player is standing on ice. */
   onIce = false;
@@ -74,9 +80,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return SKINS[this.skin];
   }
 
-  /** The current skin's max HP. Mushroom form does not change this. */
+  /** The current skin's max HP, plus God Tom's stacked kill bonus, if any. */
   get maxHp(): number {
-    return this.skinDef.maxHp;
+    return this.skinDef.maxHp + this.bonusMaxHp;
+  }
+
+  /** How many God Tom stacks are currently live. */
+  get godTomStackCount(): number {
+    return this.godTomStacksList.length;
   }
 
   /** The current skin's E attack, if it has one. */
@@ -124,7 +135,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   private get currentRunSpeed(): number {
-    return this.form === 'mushroom' ? MUSHROOM.runSpeed : this.skinDef.runSpeed;
+    return (this.form === 'mushroom' ? MUSHROOM.runSpeed : this.skinDef.runSpeed) + this.bonusRunSpeed;
   }
 
   private get currentJumpVelocity(): number {
@@ -263,6 +274,44 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.lastAttackAt = now;
   }
 
+  /** True while the Kitty suit is held, off cooldown, and the player can act. */
+  canScratch(now: number): boolean {
+    if (this.isFrozen || !this.isAlive) return false;
+    return this.held === 'kittySuit' && now - this.lastScratchAt >= KITTY_SUIT.cooldownMs;
+  }
+
+  /** Call once a scratch has actually landed. */
+  recordScratch(now: number): void {
+    this.lastScratchAt = now;
+  }
+
+  /**
+   * God Tom: a kill grants a stack worth the enemy's own max HP (added to both
+   * max and current HP) and a fraction of its speed (added to run speed).
+   * Stacks, no cap, and each expires on its own clock.
+   */
+  addGodTomStack(hp: number, speed: number, expiresAt: number): void {
+    this.godTomStacksList.push({ expiresAt, hp, speed });
+    this.bonusMaxHp += hp;
+    this.bonusRunSpeed += speed;
+    this.hp += hp;
+  }
+
+  private updateGodTomStacks(now: number): void {
+    if (this.godTomStacksList.length === 0) return;
+    const remaining: typeof this.godTomStacksList = [];
+    for (const s of this.godTomStacksList) {
+      if (now < s.expiresAt) {
+        remaining.push(s);
+        continue;
+      }
+      this.bonusMaxHp -= s.hp;
+      this.bonusRunSpeed -= s.speed;
+    }
+    this.godTomStacksList = remaining;
+    this.hp = Math.min(this.hp, this.maxHp);
+  }
+
   // -- State changes --------------------------------------------------------
 
   give(kind: PowerUpKind): void {
@@ -274,6 +323,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.fireCharges = 0;
       // Grant the air jump straight away if picked up mid-air.
       this.airJumpsLeft = Math.max(this.airJumpsLeft, CLOUD.airJumps);
+    } else if (kind === 'kittySuit') {
+      this.held = 'kittySuit';
+      this.fireCharges = 0;
     }
   }
 
@@ -430,6 +482,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   preUpdate(time: number, delta: number): void {
     super.preUpdate(time, delta);
+
+    this.updateGodTomStacks(time);
 
     if (this.form !== 'none') {
       if (time >= this.formUntil) {

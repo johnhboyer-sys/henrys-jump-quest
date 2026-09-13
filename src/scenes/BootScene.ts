@@ -27,6 +27,7 @@ export class BootScene extends Phaser.Scene {
     this.makeTiles();
     this.makeIcicle();
     this.makeFlags();
+    this.makeMooMooHole();
     this.makeBits();
 
     this.scene.start('Menu');
@@ -304,6 +305,24 @@ export class BootScene extends Phaser.Scene {
     g.lineBetween(20, 44, 32, 44);
   }
 
+  /** God Tom: Tom, but with a golden glow and a crown. */
+  private drawGodTom(g: Phaser.GameObjects.Graphics, legs: 'stand' | 'runA' | 'runB' | 'air'): void {
+    // Golden aura, drawn behind the body.
+    g.fillStyle(0xffe27a, 0.3);
+    g.fillCircle(24, 30, 30);
+    this.drawKid(g, legs, 'tom');
+    // A little crown, perched on top of the cap.
+    g.fillStyle(0xffd700, 1);
+    g.fillRect(13, 1, 22, 4);
+    g.fillTriangle(13, 2, 18, -4, 23, 2);
+    g.fillTriangle(20, 2, 27, -6, 34, 2);
+    g.fillTriangle(31, 2, 36, -4, 41, 2);
+    g.fillStyle(0xfff0a0, 1);
+    g.fillCircle(18, -2, 2);
+    g.fillCircle(27, -4, 2.4);
+    g.fillCircle(36, -2, 2);
+  }
+
   private makePlayer(): void {
     const poses = ['idle', 'run1', 'run2', 'jump'] as const;
     const legsFor = { idle: 'stand', run1: 'runA', run2: 'runB', jump: 'air' } as const;
@@ -317,6 +336,7 @@ export class BootScene extends Phaser.Scene {
       this.tex(`shellcracker-${pose}`, 48, 62, (g) => this.drawShellKid(g, legsFor[pose]));
       this.tex(`galacticRaider-${pose}`, 48, 62, (g) => this.drawRaiderKid(g, legsFor[pose]));
       this.tex(`tinyGuy-${pose}`, 32, 40, (g) => this.drawTinyGuy(g, legsFor[pose]));
+      this.tex(`godTom-${pose}`, 48, 62, (g) => this.drawGodTom(g, legsFor[pose]));
     }
     for (const pose of poses) {
       this.tex(`godshroom-${pose}`, 48, 62, (g) => this.drawGodShroom(g, legsFor[pose]));
@@ -954,6 +974,29 @@ export class BootScene extends Phaser.Scene {
       g.fillRect(33, 15, 6, 3);
     });
 
+    // Kitty suit: a little cat-ear hood.
+    this.tex('pw-kittysuit', 44, 40, (g) => {
+      g.fillStyle(0xf2b134, 1);
+      g.fillTriangle(6, 20, 14, 2, 20, 20);
+      g.fillTriangle(24, 20, 30, 2, 38, 20);
+      g.fillStyle(0xffd7a0, 1);
+      g.fillTriangle(10, 17, 14, 7, 18, 17);
+      g.fillTriangle(26, 17, 30, 7, 34, 17);
+      g.fillStyle(0xf2b134, 1);
+      g.fillRoundedRect(4, 18, 36, 20, 10);
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(16, 28, 3);
+      g.fillCircle(28, 28, 3);
+      g.fillStyle(0x1a1a1a, 1);
+      g.fillCircle(16, 28, 1.4);
+      g.fillCircle(28, 28, 1.4);
+      g.lineStyle(1.5, 0xffffff, 0.8);
+      g.lineBetween(2, 30, 12, 30);
+      g.lineBetween(2, 34, 12, 33);
+      g.lineBetween(32, 30, 42, 30);
+      g.lineBetween(32, 33, 42, 34);
+    });
+
     this.tex('pw-coin', 30, 30, (g) => {
       g.fillStyle(0xf5b32b, 1);
       g.fillCircle(15, 15, 14);
@@ -1156,6 +1199,32 @@ export class BootScene extends Phaser.Scene {
       g.fillTriangle(12, 8, 70, 26, 12, 44);
       g.fillStyle(0xffffff, 1);
       g.fillTriangle(26, 22, 40, 22, 33, 34);
+    });
+  }
+
+  /** The Moo Moo Cow Mom Hole: a dark hole with a cow-print rim, drawn on the ground. */
+  private makeMooMooHole(): void {
+    this.tex('hole-moomoo', 120, 50, (g) => {
+      // Cow-print rim.
+      g.fillStyle(0xffffff, 1);
+      g.fillEllipse(60, 30, 116, 40);
+      g.fillStyle(0x1a1a1a, 1);
+      g.fillEllipse(38, 20, 20, 13);
+      g.fillEllipse(82, 24, 24, 15);
+      g.fillEllipse(58, 40, 18, 9);
+      g.fillEllipse(16, 32, 13, 9);
+      g.fillEllipse(102, 34, 15, 9);
+      // The hole itself.
+      g.fillStyle(0x120e1a, 1);
+      g.fillEllipse(60, 28, 92, 26);
+      g.fillStyle(0x000000, 0.85);
+      g.fillEllipse(60, 30, 66, 16);
+    });
+
+    // A little carry-glow, used under an enemy God Tom is carrying.
+    this.tex('carry-glow', 40, 16, (g) => {
+      g.fillStyle(0xffe27a, 0.55);
+      g.fillEllipse(20, 8, 36, 10);
     });
   }
 

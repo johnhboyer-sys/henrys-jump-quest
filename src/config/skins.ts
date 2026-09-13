@@ -11,7 +11,8 @@ export type SkinId =
   | 'nurse'
   | 'tinyGuy'
   | 'shellcracker'
-  | 'galacticRaider';
+  | 'galacticRaider'
+  | 'godTom';
 
 export type AttackKind = 'purse' | 'hammer' | 'sword' | 'backfire';
 
@@ -150,6 +151,20 @@ export const SKINS: Record<SkinId, SkinDef> = {
       cooldownMs: 400, // placeholder: not Henry's number
       hint: 'E = sword',
     },
+  },
+  godTom: {
+    id: 'godTom',
+    label: 'God Tom',
+    // Base stats = Tom's — nothing in the brief suggested otherwise.
+    maxHp: 100, // placeholder: not Henry's number
+    runSpeed: 320, // placeholder: not Henry's number
+    jumpVelocity: -760, // placeholder: not Henry's number
+    bodyW: 42,
+    bodyH: 58,
+    texW: 48,
+    texH: 62,
+    // No `attack` here: God Tom's E is pick-up-and-throw, a two-state action
+    // handled directly in GameScene rather than through the generic swing.
   },
 };
 

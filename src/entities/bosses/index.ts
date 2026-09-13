@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BOSSES } from '../../config/bosses';
+import { BOSSES, type BossDef } from '../../config/bosses';
 import { BossBase } from './BossBase';
 import { Shellcracker } from './Shellcracker';
 import { GalacticRaider } from './GalacticRaider';
@@ -7,14 +7,20 @@ import { GalacticRaider } from './GalacticRaider';
 export { BossBase, Shellcracker, GalacticRaider };
 export type { HitSource, TelegraphSpec } from './BossBase';
 
-/** Turns a boss id from level data into the right boss. */
+/**
+ * Turns a boss id from level data into the right boss. `defOverride` lets a
+ * caller hand over a modified copy of the boss's stats (Nearly Impossible's
+ * +1000 HP, or the Moo Moo Hole's weaker rematch copy) without touching the
+ * shared `BOSSES` config, which every other fight still reads unmodified.
+ */
 export function createBoss(
   scene: Phaser.Scene,
   id: string,
   x: number,
   feetY: number,
+  defOverride?: BossDef,
 ): BossBase {
-  const def = BOSSES[id];
+  const def = defOverride ?? BOSSES[id];
   switch (def.kind) {
     case 'galacticRaider':
       return new GalacticRaider(scene, def, x, feetY);

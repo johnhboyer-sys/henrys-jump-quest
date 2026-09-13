@@ -1,7 +1,8 @@
 # Jump Quest
 
 A 2D side-scrolling platformer built from Henry and Tom's brainstorm.
-Five levels, four enemies, five power-ups, two bosses and seven playable skins.
+Five levels, four enemies, six power-ups, two bosses, eight playable skins,
+two difficulty modes and a bonus rematch hole.
 
 ## Run it
 
@@ -19,13 +20,40 @@ Then open the URL Vite prints. `npm run build` type-checks and bundles to `dist/
 | ← → | Run (A / D also work) |
 | ↑ | Jump — hold for a higher one (W / Space also work) |
 | ↑ again | Double jump, if you are holding the Cloud |
-| ↓ | Use the power-up you are holding (S also works) |
+| ↓ | Use the power-up you are holding (S also works); on the Moo Moo Hole, enters it instead |
 | E | Your skin's attack, if it has one (see Skins below) |
 | H | Nurse only: spend 20 coins to heal to full |
 | ESC | Pause (Q from the pause card leaves the level; number keys switch skin, if the mid-level switch is turned on) |
 | Shift+R | Restart the level |
+| ← → | Normal / Nearly Impossible (menu screen) |
 | S | Cycle skins (menu screen) |
 | M | Mute (menu screen) |
+
+## Difficulty modes
+
+Two modes, chosen on the menu with ← →: **Normal** and **Nearly Impossible**.
+Each has its own, fully separate save — unlocks, best scores, coins, skins,
+purchases, all of it. Normal keeps the original save
+(`henrys-jump-quest-save`); Nearly Impossible gets its own
+(`henrys-jump-quest-save-nearly-impossible`), starting fresh. The last mode
+you picked is remembered in its own key, so the menu opens back into it.
+
+Nearly Impossible changes every normal level and boss arena:
+
+- **Enemies packed more densely** — a second copy of every enemy, offset
+  90px inside its own patrol bounds.
+- **Wider pits** — every gap between ground slabs grows from 180 to 220,
+  still inside a full-speed jump. Everything past the gap (platforms,
+  enemies, blocks, coins, icicles, checkpoints, the goal, the boss, the
+  player's start) shifts right to make room; boss levels are one ground slab
+  and are unaffected.
+- **Fewer power-up blocks, but a wilder one** — a normal level keeps only its
+  first power-up block (coin blocks are untouched); a boss arena keeps its
+  first three, plus anything outside the arena. Every one left rolls a
+  random power-up — Fireball, Star or Mushroom, or the dud rolls Heart,
+  Cloud or 1-UP — fresh on every bump and every refill.
+- **+1000 HP on every boss**, with `hitsToKill` scaled up to match, so the
+  fight is genuinely longer rather than free extra HP that never gets used.
 
 ## What is in it
 
@@ -69,6 +97,11 @@ and a banked 1-UP is spent automatically to save the run first.
 - **God Mushroom** — 12 seconds as an enormous angry toadstool: invincible,
   faster, a much higher jump, a free double jump, and triple damage.
 - **1-UP** — an extra life. Only ever found in boss arenas.
+- **Kitty Suit** — held, not instant. ↓ scratches in front of you (the same
+  kind of swing as a skin's E attack), taking an eighth of the target's max
+  HP. Unlimited uses, a short cooldown between them, and **no good against
+  bosses** — it never damages one. Not sold, and never rolled by a random
+  block.
 
 Star and Mushroom fire the moment you touch them, and **never carry into the
 next level** — every level starts you plain, unless you bought one in the shop.
@@ -92,9 +125,12 @@ to shop:
 | James (forever) | 1000 | own James for good |
 | Nurse (rent) | 100 | wear the Nurse for the next 20 levels |
 | Nurse (forever) | 1000 | own the Nurse for good |
+| God Tom | 10,000 | own God Tom for good — listed from the start as a goal |
 
 Big Bob only sells Shellcracker and Galactic Raider, and only once you have
-beaten the boss in question — 100 coins each, forever.
+beaten the boss in question — 100 coins each, forever. God Tom is Boo's, not
+Big Bob's, and is free the moment you have beaten the last level, whatever it
+costs — see God Tom, below.
 
 A bought Star or Mushroom comes back if you fall down a pit. A skin rental
 counts down by one level every time you finish a level, whichever skin you
@@ -109,6 +145,41 @@ refuses if the new body would not fit where you are standing (Tiny Guy ducking
 somewhere Tom cannot fit, say). John asked for this over Henry's objection
 that it is "cheating" — flip the flag off to remove it without ripping the
 feature back out.
+
+**The Moo Moo Cow Mom Hole** — a dark, cow-print-rimmed hole with a sign
+above it ("MOO MOO COW MOM HOLE ↓"), sitting on the ground near the start of
+every normal level (never a boss level, and never a gap in the ground —
+purely decoration and a trigger). Stand on it and press ↓ to drop in. Pick
+any boss you have already beaten in the current mode with ↑ ↓ and ENTER (or a
+click); ESC climbs back out. Beat one and you get a **weaker copy**: 1000 HP
+in Normal mode, with `hitsToKill` scaled down to match (minimum 6 hits); in
+Nearly Impossible the hole boss keeps its ordinary (not +1000) HP instead.
+Winning drops you back into the level you came from, 200px before its goal
+flag, so touching the flag clears the level the normal way — the hole can
+never be used to skip a boss level, because it only ever exists on normal
+ones. **Nothing about the hole touches the bank**: no coins, no best score,
+no `recordLevelClear`, just a small "YOU BEAT IT!" card before you return.
+Losing all your lives in the hole sends you back to the level's own start,
+no re-lock penalty.
+
+**God Tom** — Boo's, not Big Bob's: listed in the shop from the very start,
+10,000 coins, so it is a visible goal from the first time you open the shop.
+Free the moment `clearedLevel` reaches the last level in `LEVELS`, whatever
+the price says. Buying or claiming it owns it forever. Base stats are Tom's.
+
+- **Kill stacking** — every kill while wearing God Tom adds a stack of that
+  enemy's own stats for 9 seconds: its max HP (added to both your max and
+  current HP) and half its speed (added to your run speed). Stacks, no cap;
+  each expires on its own clock, and expiring only ever lowers your max HP,
+  clamping current HP down if it now exceeds the new max. The HUD shows
+  "POWER ×N" while any are live.
+- **Pick up and throw** — E picks up the nearest ordinary enemy within about
+  80px in front of you (never a galactic minion, never a boss) and carries it
+  overhead; E again throws it in the direction you are facing. It kills any
+  ordinary enemy it hits on the way (a kill like any other — coins, score,
+  a God Tom stack) and is destroyed on impact or after 1.5 seconds. It is
+  never a hit on a boss — a thrown enemy that reaches one just falls and dies.
+- **No flying.** It was in the brainstorm; cut here.
 
 **Enemies**
 
@@ -222,6 +293,47 @@ they are easy to find and easy to change:
 - **`SKINS_CONFIG.switchMidLevel` defaults to on.** John's call, over Henry's
   "that's cheating" — see Controls and the shop section above.
 
+### Placeholders from the modes / Kitty suit / hole / God Tom slice
+
+Every one of these lives with a `// placeholder: not Henry's number` comment
+in `src/config/game.ts`, `src/config/hardMode.ts` or `src/config/mooMoo.ts`:
+
+- **← → switches mode on the menu**, and its own localStorage key is named
+  `henrys-jump-quest-mode` — nothing in the brief named a key or a control.
+- **Fully separate saves per mode**, down to unlocks, scores, coins, skins
+  and purchases — Henry only asked for separate saves and high scores; this
+  pass took "fully separate" as the simplest, least surprising reading.
+- **Enemy density: a second copy, offset 90px** inside the enemy's own patrol
+  bounds — Henry asked for "packed more densely", not a number.
+- **Gap widen: 40px** (180 → 220) — chosen to still sit inside a full-speed
+  jump of about 270px, so the level stays winnable, just tighter.
+- **Boss `hitsToKill` scaling formula** (`hitsToKill * (hp + 1000) / hp`,
+  rounded) — otherwise the extra HP would change nothing, since fight length
+  is set by `hitsToKill`, not HP; see the Bosses section above.
+- **The `'random'` block pool's odds** — equal across all six kinds. Henry
+  named which three are the live rolls and which three are the duds, not the
+  weights.
+- **Kitty suit scratch cooldown (250ms)** — Henry specified the damage (an
+  eighth of the target's max HP), not the pacing between scratches.
+- **God Tom's "stats" for the kill-stacking bonus** — full max HP plus half
+  the killed enemy's speed. Henry said "that enemy's stats"; this pass chose
+  what that means in code.
+- **God Tom's pickup range (~80px), throw speed and throw lifetime (1.5s)** —
+  Henry specified the shape of the move, not these numbers.
+- **God Tom's art** — a golden glow and a crown on Tom's own sprite, base
+  stats equal to Tom's.
+- **The Moo Moo Hole's position (`playerStart.x + 260`), the hole boss's
+  arena position (x ≈ 1800), its minimum `hitsToKill` (6, so it can never be
+  a one-hit kill), and the return spawn point (200px before the goal)** —
+  the brief said "a weaker copy" and "at the start of every level"; these
+  pin down exactly where and how much weaker.
+- **The Moo Moo arena itself** (a new `MOO_MOO_ARENA`-style template in
+  `src/config/mooMoo.ts`: flat ~2400px ground, two dodge ledges and a high
+  one like level 3, four refilling blocks) — built to match the brief's
+  description, not copied from an existing level.
+- **The menu's two-column level grid**, switching in once `LEVELS` holds more
+  than six entries — the brief asked only that nothing overlap at 11 rows.
+
 ## Adding to it
 
 - **A level** is data: add a `LevelDef` to `src/config/levels.ts`. Platform x/y is
@@ -237,17 +349,23 @@ they are easy to find and easy to change:
   `availableSkins` and `blockedReason` in `src/systems/SaveSystem.ts`.
 - **Tuning** — jump height, speed, damage and cooldowns all live in
   `src/config/game.ts`.
+- **Nearly Impossible's level changes** are one pure function,
+  `nearlyImpossible()` in `src/config/hardMode.ts`, over a `LevelDef` — add a
+  level to `LEVELS` and it is covered automatically, no extra wiring.
+- **The Moo Moo Hole** is `mooMooArena()` and `weakenHoleBoss()` in
+  `src/config/mooMoo.ts`, plus `HoleScene.ts` for the picker — generic over
+  whichever bosses `BOSSES` holds.
 
 ## Layout
 
 ```
 src/
-  config/     levels, enemies, bosses, power-ups, tuning
-  entities/   Player, Projectile, blocks, pickups, flags, hazards
+  config/     levels, enemies, bosses, power-ups, tuning, hard mode, the hole
+  entities/   Player, Projectile, blocks, pickups, flags, hazards, the hole
     enemies/  Enemy base + Mushroom, FireFoe, SnappyTurtle, Butterfly
     bosses/   BossBase + Shellcracker, GalacticRaider
-  scenes/     Boot (all the art), Menu, Game, UI
-  systems/    Backdrop, SaveSystem, SoundSystem
+  scenes/     Boot (all the art), Menu, Game, UI, Shop, Hole
+  systems/    Backdrop, SaveSystem, SoundSystem, ModeSystem
 ```
 
 Progress (unlocked levels, levels cleared, best scores, banked 1-UPs, your

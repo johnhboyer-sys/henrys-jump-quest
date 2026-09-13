@@ -20,6 +20,12 @@ interface HudData {
   skinLabel: string;
   attackHint: string | null;
   canNurseHeal: boolean;
+  nearlyImpossible: boolean;
+  godTomStacks: number;
+}
+
+interface HoleEndData {
+  originLevelId: number;
 }
 
 interface BossData {
@@ -70,6 +76,8 @@ export class UIScene extends Phaser.Scene {
   private formBar!: Phaser.GameObjects.Graphics;
   private formText!: Phaser.GameObjects.Text;
   private skinInfoText!: Phaser.GameObjects.Text;
+  private modeTagText!: Phaser.GameObjects.Text;
+  private powerStackText!: Phaser.GameObjects.Text;
   private pauseCard?: Phaser.GameObjects.Container;
   private pauseDigitHandler?: (ev: KeyboardEvent) => void;
   private levelId = 1;
@@ -89,6 +97,8 @@ export class UIScene extends Phaser.Scene {
     skinLabel: '',
     attackHint: null,
     canNurseHeal: false,
+    nearlyImpossible: false,
+    godTomStacks: 0,
   };
   private boss: BossData | null = null;
 
@@ -170,6 +180,28 @@ export class UIScene extends Phaser.Scene {
       })
       .setDepth(2);
 
+    // Nearly Impossible's tag, and God Tom's stack counter.
+    this.modeTagText = this.add
+      .text(VIEW.width / 2, 14, 'NEARLY IMPOSSIBLE', {
+        fontFamily: FONT,
+        fontSize: '18px',
+        color: '#ff7a4d',
+        stroke: '#000000',
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5, 0)
+      .setDepth(2)
+      .setVisible(false);
+    this.powerStackText = this.add
+      .text(30, 96, '', {
+        fontFamily: FONT,
+        fontSize: '16px',
+        color: '#ffd700',
+        stroke: '#000000',
+        strokeThickness: 3,
+      })
+      .setDepth(2);
+
     this.bossBar = this.add.graphics().setDepth(1);
     this.bossText = this.add
       .text(VIEW.width / 2, VIEW.height - 74, '', {
@@ -198,6 +230,8 @@ export class UIScene extends Phaser.Scene {
       this.showPause(d.levelName, d.levelId),
     );
     game.events.on('resume', () => this.hidePause());
+    game.events.on('holeWin', (d: HoleEndData) => this.showHoleEnd(true, d.originLevelId));
+    game.events.on('holeLose', (d: HoleEndData) => this.showHoleEnd(false, d.originLevelId));
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       game.events.off('hud');
@@ -206,6 +240,8 @@ export class UIScene extends Phaser.Scene {
       game.events.off('gameover');
       game.events.off('pause');
       game.events.off('resume');
+      game.events.off('holeWin');
+      game.events.off('holeLose');
     });
 
     this.redraw();
@@ -233,9 +269,13 @@ export class UIScene extends Phaser.Scene {
     const bits = [`Skin: ${this.hud.skinLabel}`];
     if (this.hud.attackHint) bits.push(this.hud.attackHint);
     if (this.hud.skinLabel === 'Nurse') bits.push('H = heal (20)');
+    if (this.hud.skinLabel === 'God Tom') bits.push('E = pick up / throw');
     this.skinInfoText
       .setText(bits.join('   '))
       .setColor(this.hud.canNurseHeal ? '#7ee6a0' : '#ffe27a');
+
+    this.modeTagText.setVisible(this.hud.nearlyImpossible);
+    this.powerStackText.setText(this.hud.godTomStacks > 0 ? `POWER ×${this.hud.godTomStacks}` : '');
 
     if (held) {
       const def = POWERUPS[held];
@@ -435,6 +475,43 @@ export class UIScene extends Phaser.Scene {
     kb.once('keydown-ESC', () => {
       this.scene.stop();
       game.scene.start('Menu');
+    });
+  }
+
+  /**
+   * The Moo Moo Hole ends here, win or lose. No coins, no best score, no
+   * merchant — just a small card, then straight back to the level.
+   */
+  private showHoleEnd(won: boolean, originLevelId: number): void {
+    const cx = VIEW.width / 2;
+    const veil = this.add.graphics().setDepth(50);
+    veil.fillStyle(0x0a0e18, 0.8);
+    veil.fillRect(0, 0, VIEW.width, VIEW.height);
+
+    this.add
+      .text(cx, 300, won ? 'YOU BEAT IT!' : 'NOT THIS TIME', {
+        fontFamily: FONT,
+        fontSize: '46px',
+        color: won ? '#7ee6a0' : '#ff8a8a',
+        stroke: '#000000',
+        strokeThickness: 8,
+      })
+      .setOrigin(0.5)
+      .setDepth(51);
+
+    this.add
+      .text(cx, 360, 'Back to the level…', {
+        fontFamily: FONT,
+        fontSize: '22px',
+        color: '#ffffff',
+      })
+      .setOrigin(0.5)
+      .setDepth(51);
+
+    const game = this.scene.get('Game');
+    this.time.delayedCall(1600, () => {
+      this.scene.stop();
+      game.scene.start('Game', won ? { levelId: originLevelId, spawnNearGoal: true } : { levelId: originLevelId });
     });
   }
 

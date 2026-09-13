@@ -8,10 +8,17 @@ import {
   LIVES,
   SAFE_GROUND_SAMPLE_MS,
   COIN_REWARD,
+  KITTY_SUIT,
+  GOD_TOM,
+  MOO_MOO,
 } from '../config/game';
-import { DEATH_Y, getLevel, LEVELS, type LevelDef, type PlatformDef } from '../config/levels';
+import { DEATH_Y, FLOOR_Y, getLevel, LEVELS, type LevelDef, type PlatformDef } from '../config/levels';
 import { HEART_HEAL, POWERUPS, type PowerUpKind } from '../config/powerups';
 import { BOUGHT_FORM_MS } from '../config/shop';
+import { BOSSES, type BossDef } from '../config/bosses';
+import { nearlyImpossible, nearlyImpossibleBoss } from '../config/hardMode';
+import { mooMooArena, weakenHoleBoss } from '../config/mooMoo';
+import { getMode } from '../systems/ModeSystem';
 
 import { Player, type SkinId } from '../entities/Player';
 import { Projectile, type ProjectileOptions } from '../entities/Projectile';
@@ -19,6 +26,7 @@ import { Coin, PowerUpPickup } from '../entities/Collectible';
 import { QuestionBlock } from '../entities/QuestionBlock';
 import { IcicleTrap } from '../entities/IcicleTrap';
 import { Checkpoint, GoalFlag } from '../entities/Flag';
+import { MooMooHole } from '../entities/Hole';
 import { createBoss, type BossBase, type HitSource } from '../entities/bosses';
 import { createEnemy, Enemy, type EnemyWorld } from '../entities/enemies';
 import type { EnemyKind } from '../config/enemies';
@@ -38,6 +46,12 @@ import { play } from '../systems/SoundSystem';
 
 interface GameSceneData {
   levelId?: number;
+  /** Set for a Moo Moo Hole rematch: which boss, weaker than usual. `levelId`
+   * doubles as the normal level to return to when the fight ends. */
+  holeBossId?: string;
+  /** Set when returning from a WON hole fight: spawn 200px before the goal
+   * instead of at the level's own start, so touching it clears the level. */
+  spawnNearGoal?: boolean;
 }
 
 export class GameScene extends Phaser.Scene implements EnemyWorld {
@@ -62,6 +76,20 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
   private iceSurfaces = new Set<Phaser.GameObjects.GameObject>();
   private touchingIce = false;
+
+  /** Set when this run is a Moo Moo Hole rematch rather than a real level. */
+  private isHoleFight = false;
+  /** The normal level to return to once a hole fight ends, win or lose. */
+  private originLevelId = 1;
+  /** True while the hole's boss picker is open, so ESC does not also toggle pause. */
+  private holeOpen = false;
+  private hole?: MooMooHole;
+  private standingOnHole = false;
+
+  /** God Tom: the ordinary enemy currently held overhead, if any. */
+  private carriedEnemy?: Enemy;
+  /** God Tom: enemies in flight, each with the time it despawns by itself. */
+  private thrownEnemies = new Map<Enemy, number>();
 
   private keys!: {
     left: Phaser.Input.Keyboard.Key;
@@ -95,7 +123,21 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   }
 
   init(data: GameSceneData): void {
-    this.level = getLevel(data.levelId ?? 1);
+    this.originLevelId = data.levelId ?? 1;
+    this.isHoleFight = !!data.holeBossId;
+
+    let level = this.isHoleFight ? mooMooArena(data.holeBossId!) : getLevel(this.originLevelId);
+    // Nearly Impossible's level changes never touch the hole's own arena —
+    // section C spells out its own (weaker) boss-HP rule instead.
+    if (!this.isHoleFight && getMode() === 'nearlyImpossible') level = nearlyImpossible(level);
+    // Always work from a copy — LEVELS' entries are shared, mutable-in-place
+    // config, and spawnNearGoal below needs to move the start point.
+    level = { ...level, playerStart: { ...level.playerStart } };
+    if (!this.isHoleFight && data.spawnNearGoal && level.goal) {
+      level.playerStart = { x: level.goal.x - MOO_MOO.returnBeforeGoalPx, y: level.goal.y };
+    }
+    this.level = level;
+
     this.score = 0;
     this.coinsTaken = 0;
     this.deaths = 0;
@@ -106,6 +148,11 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.goal = undefined;
     this.boss = undefined;
     this.paused = false;
+    this.holeOpen = false;
+    this.hole = undefined;
+    this.standingOnHole = false;
+    this.carriedEnemy = undefined;
+    this.thrownEnemies = new Map();
     this.bossContactAt = 0;
     this.iceSurfaces = new Set();
 
@@ -160,8 +207,19 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     for (const cp of level.checkpoints) this.checkpoints.push(new Checkpoint(this, cp.x, cp.y));
     if (level.goal) this.goal = new GoalFlag(this, level.goal.x, level.goal.y);
 
+    // Moo Moo Hole: at the start of every normal level, never in a boss one.
+    if (!this.isHoleFight && !level.boss) {
+      this.hole = new MooMooHole(this, level.playerStart.x + MOO_MOO.holeOffsetX, FLOOR_Y);
+    }
+
     if (level.boss) {
-      this.boss = createBoss(this, level.boss.id, level.boss.x, level.boss.y).attach(this);
+      const base: BossDef = BOSSES[level.boss.id];
+      const bossDef = this.isHoleFight
+        ? weakenHoleBoss(base, getMode())
+        : getMode() === 'nearlyImpossible'
+          ? nearlyImpossibleBoss(base)
+          : undefined;
+      this.boss = createBoss(this, level.boss.id, level.boss.x, level.boss.y, bossDef).attach(this);
       this.boss.setActive(false);
     }
 
@@ -274,6 +332,11 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (this.goal) {
       this.physics.add.overlap(this.player, this.goal, () => this.completeLevel());
     }
+    if (this.hole) {
+      this.physics.add.overlap(this.player, this.hole, () => {
+        this.standingOnHole = true;
+      });
+    }
     if (this.boss) {
       this.physics.add.collider(this.boss, this.solids);
       this.physics.add.overlap(this.player, this.boss, () => this.onBossTouch());
@@ -282,7 +345,15 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       this.physics.add.overlap(this.boss, this.playerShots, (_b, s) =>
         this.onShotHitsBoss(s as Projectile),
       );
+      // God Tom's thrown enemies never hurt a boss — they just fall and die.
+      this.physics.add.overlap(this.boss, this.enemies, (_b, e) => this.onThrownHitsBoss(e as Enemy));
     }
+
+    // God Tom's thrown enemies kill any ordinary enemy they hit. A no-op for
+    // every other pair, since neither side is ever in `thrownEnemies`.
+    this.physics.add.overlap(this.enemies, this.enemies, (a, b) =>
+      this.onEnemyEnemyOverlap(a as Enemy, b as Enemy),
+    );
   }
 
   private setupInput(): void {
@@ -316,7 +387,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
   /** Freeze the world and show the pause card; press again to carry on. */
   private togglePause(): void {
-    if (this.finished) return;
+    if (this.finished || this.holeOpen) return;
     this.paused = !this.paused;
     if (this.paused) {
       this.physics.world.pause();
@@ -325,6 +396,31 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       this.physics.world.resume();
       this.events.emit('resume');
     }
+  }
+
+  // -- Moo Moo Cow Mom Hole ---------------------------------------------------
+
+  /** Down Arrow while standing on the hole: freeze the world and open the picker. */
+  private openHole(): void {
+    if (this.finished || this.paused) return;
+    this.holeOpen = true;
+    this.paused = true;
+    this.physics.world.pause();
+    this.scene.launch('Hole', { originLevelId: this.level.id });
+    this.scene.bringToTop('Hole');
+  }
+
+  /** Called by HoleScene when the player climbs back out (ESC, or nothing beaten yet). */
+  resumeFromHole(): void {
+    this.holeOpen = false;
+    this.paused = false;
+    this.physics.world.resume();
+  }
+
+  /** Called by HoleScene once a boss is picked. Rebuilds the scene as the arena fight. */
+  startHoleFight(bossId: string): void {
+    this.scene.stop('Hole');
+    this.scene.start('Game', { levelId: this.originLevelId, holeBossId: bossId });
   }
 
   /** Called by the pause card when the player chooses to leave. */
@@ -623,10 +719,18 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   }
 
   private killEnemy(enemy: Enemy, points: number): void {
+    this.addGodTomStack(enemy);
     enemy.die();
     this.score += points;
     this.coinsTaken += COIN_REWARD.enemyKill;
     this.emitHud();
+  }
+
+  /** God Tom only: a kill grants a stack of that enemy's own stats for 9s. */
+  private addGodTomStack(enemy: Enemy): void {
+    if (this.player.skin !== 'godTom') return;
+    const speedGain = enemy.def.speed * GOD_TOM.speedFraction;
+    this.player.addGodTomStack(enemy.def.hp, speedGain, this.time.now + GOD_TOM.stackDurationMs);
   }
 
   // -- Player fireballs -----------------------------------------------------
@@ -709,6 +813,136 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     play('stomp');
   }
 
+  /**
+   * Down Arrow, Kitty suit held: the same kind of melee swing as a skin's E
+   * attack, taking an eighth of the target's max HP. Never touches a boss —
+   * this only ever loops over `this.enemies`.
+   */
+  private tryScratch(now: number): void {
+    if (!this.player.canScratch(now)) return;
+    this.player.recordScratch(now);
+
+    const bounds = this.player.getBounds();
+    const swingW = 64;
+    const swingH = 50;
+    const rectX = this.player.facing === 1 ? bounds.right : bounds.left - swingW;
+    const rectY = bounds.centerY - swingH / 2;
+    const rect = new Phaser.Geom.Rectangle(rectX, rectY, swingW, swingH);
+    this.showSwing('purse', rectX, rectY, swingW, swingH);
+
+    for (const obj of this.enemies.getChildren()) {
+      const enemy = obj as Enemy;
+      if (!enemy.active || this.thrownEnemies.has(enemy) || enemy === this.carriedEnemy) continue;
+      if (!Phaser.Geom.Intersects.RectangleToRectangle(rect, enemy.getBounds())) continue;
+      const damage = enemy.def.hp * KITTY_SUIT.fraction;
+      if (enemy.hit(damage)) this.killEnemy(enemy, SCORE.enemyBurned);
+    }
+    play('stomp');
+  }
+
+  // -- God Tom: pick up and throw --------------------------------------------
+
+  /** E, God Tom: pick up the nearest ordinary enemy in front, or throw one already held. */
+  private tryGodTomAction(): void {
+    if (this.carriedEnemy) {
+      this.throwCarriedEnemy();
+      return;
+    }
+
+    const dir = this.player.facing;
+    const originX = this.player.x + dir * 20;
+    let best: Enemy | undefined;
+    let bestDist: number = GOD_TOM.pickupRangePx;
+    for (const obj of this.enemies.getChildren()) {
+      const enemy = obj as Enemy;
+      // Ordinary enemies only — not a galactic minion, and not a boss (bosses
+      // are never members of this group in the first place).
+      if (!enemy.active || enemy.elite || this.thrownEnemies.has(enemy)) continue;
+      const ahead = (enemy.x - originX) * dir;
+      if (ahead < -20 || ahead > GOD_TOM.pickupRangePx) continue;
+      const dist = Math.abs(enemy.x - this.player.x);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = enemy;
+      }
+    }
+    if (!best) return;
+
+    this.carriedEnemy = best;
+    best.held = true;
+    (best.body as Phaser.Physics.Arcade.Body).enable = false;
+    play('power');
+  }
+
+  /** Every frame while an enemy is carried: keep it above God Tom's head. */
+  private updateCarriedEnemy(): void {
+    if (!this.carriedEnemy) return;
+    this.carriedEnemy.setPosition(this.player.x, this.player.y - PLAYER.height - 26);
+  }
+
+  /** Dropped mid-carry (death, or a fresh level): hand the enemy its AI back. */
+  private dropCarriedEnemy(): void {
+    const enemy = this.carriedEnemy;
+    if (!enemy) return;
+    this.carriedEnemy = undefined;
+    if (!enemy.active) return;
+    enemy.held = false;
+    (enemy.body as Phaser.Physics.Arcade.Body).enable = true;
+  }
+
+  private throwCarriedEnemy(): void {
+    const enemy = this.carriedEnemy;
+    if (!enemy) return;
+    this.carriedEnemy = undefined;
+
+    const body = enemy.body as Phaser.Physics.Arcade.Body;
+    body.enable = true;
+    body.setAllowGravity(true);
+    const dir = this.player.facing;
+    body.setVelocity(dir * GOD_TOM.throwSpeed, -80);
+    this.thrownEnemies.set(enemy, this.time.now + GOD_TOM.throwLifetimeMs);
+    play('fire');
+  }
+
+  /** Removes a thrown enemy from flight-tracking and makes it vanish. Never a kill. */
+  private despawnThrown(enemy: Enemy): void {
+    this.thrownEnemies.delete(enemy);
+    if (enemy.active) enemy.die();
+  }
+
+  /** Checks lifetime and wall/ground impact for every enemy currently in flight. */
+  private updateThrownEnemies(time: number): void {
+    if (this.thrownEnemies.size === 0) return;
+    for (const [enemy, dieAt] of this.thrownEnemies) {
+      if (!enemy.active) {
+        this.thrownEnemies.delete(enemy);
+        continue;
+      }
+      const body = enemy.body as Phaser.Physics.Arcade.Body;
+      if (time >= dieAt || body.blocked.left || body.blocked.right || body.blocked.down) {
+        this.despawnThrown(enemy);
+      }
+    }
+  }
+
+  /** Two members of `this.enemies` overlapping: only a thrown-vs-ordinary pair does anything. */
+  private onEnemyEnemyOverlap(a: Enemy, b: Enemy): void {
+    const aThrown = this.thrownEnemies.has(a);
+    const bThrown = this.thrownEnemies.has(b);
+    if (aThrown === bThrown) return;
+    const thrown = aThrown ? a : b;
+    const victim = aThrown ? b : a;
+    if (!thrown.active || !victim.active || victim === this.carriedEnemy) return;
+    this.despawnThrown(thrown);
+    this.killEnemy(victim, SCORE.enemyBurned);
+  }
+
+  /** A thrown enemy touching the boss just falls and dies — never a hit on it. */
+  private onThrownHitsBoss(enemy: Enemy): void {
+    if (!this.thrownEnemies.has(enemy)) return;
+    this.despawnThrown(enemy);
+  }
+
   /** Shellcracker's E: a shot fired opposite the way it is facing. */
   private fireBackside(damage: number): void {
     const shot = this.backfireShots.get(this.player.x, this.player.y) as Projectile | null;
@@ -764,6 +998,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
   private killPlayer(): void {
     if (this.finished) return;
+    this.dropCarriedEnemy();
     this.player.hp = 0;
     this.player.clearForm();
     this.player.setActive(false);
@@ -799,6 +1034,14 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   private runOutOfLives(): void {
     if (this.finished) return;
     this.finished = true;
+
+    // The hole fight never re-locks anything — win or lose, it is just a
+    // rematch. Losing sends the player back to the origin level's start.
+    if (this.isHoleFight) {
+      play('die');
+      this.events.emit('holeLose', { originLevelId: this.originLevelId });
+      return;
+    }
 
     if (this.bankedOneUps > 0 && spendOneUp()) {
       this.bankedOneUps -= 1;
@@ -880,7 +1123,17 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (!this.boss) return;
     this.finished = true;
     this.events.emit('boss', { hp: 0, maxHp: this.boss.maxHp, name: this.boss.def.name });
-    this.boss.defeat(() => this.completeLevel(true));
+    // A hole fight never runs completeLevel: no coins, no best score, no
+    // recordLevelClear — see completeHoleFight().
+    this.boss.defeat(() => (this.isHoleFight ? this.completeHoleFight() : this.completeLevel(true)));
+  }
+
+  /** Winning the hole fight: no rewards, just a small card, then back to the level. */
+  private completeHoleFight(): void {
+    this.player.setVelocity(0, 0);
+    (this.player.body as Phaser.Physics.Arcade.Body).enable = false;
+    play('win');
+    this.events.emit('holeWin', { originLevelId: this.originLevelId });
   }
 
   private completeLevel(wasBoss = false): void {
@@ -961,6 +1214,8 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       attackHint: attack ? attack.hint : null,
       canNurseHeal:
         isNurse && this.player.hp < this.player.maxHp && loadSave().totalCoins >= 20,
+      nearlyImpossible: getMode() === 'nearlyImpossible',
+      godTomStacks: this.player.godTomStackCount,
     });
     if (this.boss && this.bossAwake) {
       this.events.emit('boss', {
@@ -979,6 +1234,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
     if (this.finished || !this.player.isAlive) {
       this.touchingIce = false;
+      this.standingOnHole = false;
       return;
     }
 
@@ -1001,13 +1257,25 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (jumped.didDoubleJump) this.cloudPuff();
 
     if (Phaser.Input.Keyboard.JustDown(k.down) || Phaser.Input.Keyboard.JustDown(k.s)) {
-      const used = this.player.usePowerUp(time);
-      if (used === 'fire') this.throwFireball();
-      if (used === 'hop') this.cloudPuff();
+      // While standing on the hole, Down enters it instead of using a held power-up.
+      if (this.hole && this.standingOnHole && !this.isHoleFight) {
+        this.openHole();
+      } else {
+        const used = this.player.usePowerUp(time);
+        if (used === 'fire') this.throwFireball();
+        if (used === 'hop') this.cloudPuff();
+        if (!used) this.tryScratch(time);
+      }
     }
 
-    if (Phaser.Input.Keyboard.JustDown(k.e)) this.tryPlayerAttack(time);
+    if (Phaser.Input.Keyboard.JustDown(k.e)) {
+      if (this.player.skin === 'godTom') this.tryGodTomAction();
+      else this.tryPlayerAttack(time);
+    }
     if (Phaser.Input.Keyboard.JustDown(k.h)) this.tryNurseHeal();
+
+    this.updateCarriedEnemy();
+    this.updateThrownEnemies(time);
 
     if (this.boss && !this.bossAwake && this.player.x > this.boss.x - 780) this.wakeBoss();
 
@@ -1015,5 +1283,6 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (this.player.y > DEATH_Y) this.killPlayer();
 
     this.touchingIce = false;
+    this.standingOnHole = false;
   }
 }
