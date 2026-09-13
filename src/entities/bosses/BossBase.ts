@@ -111,7 +111,10 @@ export abstract class BossBase extends Phaser.Physics.Arcade.Sprite {
   }
 
   private applyDamage(amount: number): void {
-    this.hp = Math.max(0, Math.round(this.hp - amount));
+    // No rounding per hit: rounding after every hit drifted, so a boss took one
+    // hit more than hitsToKill says. A sliver under half a point counts as dead.
+    this.hp = Math.max(0, this.hp - amount);
+    if (this.hp < 0.5) this.hp = 0;
   }
 
   private noteImmune(): void {

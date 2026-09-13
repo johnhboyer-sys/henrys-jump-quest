@@ -388,3 +388,45 @@ the beginning."* Two real causes, both fixed:
 Found while testing the same area: `checkDeath` guarded on `isAlive`, which is
 false the moment HP reaches zero — so **death by damage never fired at all**.
 The player sat at 0 HP until they happened to fall down a pit. Fixed.
+
+## The levels 6-11 expansion
+
+Six more levels, a new enemy, and three new bosses — all Shellcracker's
+family, since that was too good a joke to leave alone.
+
+- **Kitty** — a small cat that patrols, then dashes in fast for a scratch and
+  pauses before going again. Stompable. Its scratch takes an eighth of Tom's
+  max HP, per Henry.
+- **Shellcracker's Mom**, "The Big-Haired Menace" — hand whip, spanking hands
+  and her own backside fire breath. She keeps three minions alive at all
+  times, drawn at random from mushrooms, snappy turtles and kitties, and every
+  one of them vanishes the moment she does.
+- **Kitty Raider**, "Queen of Scratches" — furballs, a scratch-mark swipe, and
+  a screech that stuns for 3 seconds and cannot be dodged. Fairness rule: she
+  does nothing else until the stun has ended plus a buffer. Starts the fight
+  with three kitties, and every one that dies is replaced by three more, up to
+  the game's usual 8-alive cap.
+- **Shellcracker's Dad, "Boo Boo Bot Head"** — laser eyes (he puts his glasses
+  on first), a spank, backside fire, and a computer he gets out to call in up
+  to two reinforcements at a time.
+
+All three fights work like Shellcracker's: only fireballs (and star/mushroom
+touches) hurt them, long loud telegraphs, and an enrage at half health. Their
+minions are never galactic and never bosses — that distinction stays the
+Galactic Raider's alone.
+
+**Minions got an owner.** `spawnMinion` now takes an optional `owner` so a
+boss can find and clear exactly the enemies it summoned, and an optional
+`galactic` flag (default true, so the Raider is unchanged) for a boss that
+wants an ordinary-strength minion instead. A boss def can set
+`clearMinionsOnDeath` to have every minion it owns pop when it dies.
+
+**Tiny tunnels.** A `LevelDef` can carry `tunnels`: solid walls with a 44px
+slot above the floor. Tom (58 tall) cannot fit through; Tiny Guy (36 tall)
+can. A sign reading "TINY GUY ONLY" marks the entrance. All three new boss
+levels put one between the approach and the arena.
+
+Every new number not explicitly given by Henry is marked `// placeholder: not
+Henry's number` at its definition in `config/bosses.ts` and
+`config/enemies.ts` — level names among them, since none of the six were
+specified.

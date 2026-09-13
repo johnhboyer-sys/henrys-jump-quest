@@ -7,7 +7,8 @@ export type EnemyKind =
   | 'mushroom'
   | 'fireFoe'
   | 'snappyTurtle'
-  | 'butterfly';
+  | 'butterfly'
+  | 'kitty';
 
 export interface EnemyDef {
   kind: EnemyKind;
@@ -90,6 +91,22 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     flies: true,
     scoreValue: 60,
   },
+
+  /** Patrols, then dashes in close for a scratch. Stompable. */
+  kitty: {
+    kind: 'kitty',
+    texture: 'enemy-kitty',
+    hp: 25, // placeholder: not Henry's number
+    // Henry's: a scratch takes an eighth of Tom's 100 max HP, rounded up.
+    touchDamage: 13, // placeholder: not Henry's number
+    speed: 110, // placeholder: not Henry's number
+    stompable: true,
+    bodyWidth: 40, // placeholder: not Henry's number
+    bodyHeight: 34, // placeholder: not Henry's number
+    aggroRange: 320, // placeholder: not Henry's number
+    attackCooldownMs: 900, // placeholder: not Henry's number
+    scoreValue: 60, // placeholder: not Henry's number
+  },
 };
 
 /** Damage dealt by the things enemies throw at you. */
@@ -99,6 +116,14 @@ export const ENEMY_PROJECTILE = {
   rain: { damage: 1, speed: 260, texture: 'proj-rain' },
   shell: { damage: 15, speed: 420, texture: 'proj-shell' },
   bossFire: { damage: 12, speed: 300, texture: 'proj-bossfire' },
+  // Shellcracker's Mom and Dad's spanking hands.
+  hand: { damage: 12, speed: 380, texture: 'proj-hand' }, // placeholder: not Henry's number
+  // Kitty Raider's furballs — Henry's damage, placeholder speed.
+  furball: { damage: 50, speed: 380, texture: 'proj-furball' },
+  // Kitty Raider's scratch marks: a stationary hitbox, like the sword swipe.
+  scratch: { damage: 100, speed: 0, texture: 'scratch-hit' },
+  // Boo Boo Bot Head's laser eyes.
+  laser: { damage: 20, speed: 700, texture: 'proj-laser' }, // placeholder: not Henry's number
 } as const;
 
 export type EnemyProjectileKind = keyof typeof ENEMY_PROJECTILE;

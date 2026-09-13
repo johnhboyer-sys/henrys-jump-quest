@@ -78,6 +78,11 @@ export interface LevelDef {
   boss?: { id: string; x: number; y: number };
   /** Power-up the player is handed on entry, so a boss fight is winnable. */
   startingPowerUp?: PowerUpKind;
+  /**
+   * Solid walls with a 44px slot above the floor — too short for Tom (58
+   * tall) but not for Tiny Guy (36 tall). See buildTerrain in GameScene.
+   */
+  tunnels?: { x: number; w: number }[];
 }
 
 /** Floor slab from x to x + w. */
@@ -474,7 +479,489 @@ const LEVEL_5: LevelDef = {
   boss: { id: 'galacticRaider', x: 2500, y: FLOOR_Y },
 };
 
-export const LEVELS: LevelDef[] = [LEVEL_1, LEVEL_2, LEVEL_3, LEVEL_4, LEVEL_5];
+// ---------------------------------------------------------------------------
+// Level 6 — Kitty Meadows. A gentle return to grass, introducing kitties
+// alongside the mushrooms and turtles from level 1.
+// ---------------------------------------------------------------------------
+const LEVEL_6: LevelDef = {
+  id: 6,
+  name: 'Kitty Meadows',
+  theme: 'grass',
+  worldWidth: 5400,
+  playerStart: { x: 120, y: FLOOR_Y },
+  platforms: [
+    ground(0, 1300),
+    ground(1460, 1200),
+    ground(2830, 1200),
+    ground(4190, 1210),
+
+    plat(500, 500, 200),
+    plat(860, 400, 180),
+    plat(1220, 470, 160),
+
+    plat(1700, 500, 200),
+    plat(2040, 400, 220),
+    plat(2400, 480, 180),
+
+    plat(2960, 500, 180),
+    plat(3260, 390, 200),
+    plat(3600, 490, 200),
+
+    plat(4200, 480, 200),
+    plat(4520, 380, 220),
+    plat(4900, 460, 180),
+  ],
+  enemies: [
+    { kind: 'kitty', x: 700, y: FLOOR_Y, left: 560, right: 900 },
+    { kind: 'mushroom', x: 1080, y: FLOOR_Y, left: 940, right: 1220 },
+    { kind: 'kitty', x: 1900, y: FLOOR_Y, left: 1700, right: 2160 },
+    { kind: 'snappyTurtle', x: 2420, y: FLOOR_Y, left: 2240, right: 2560 },
+    { kind: 'kitty', x: 2140, y: 400, left: 2060, right: 2240 },
+    { kind: 'snappyTurtle', x: 3100, y: FLOOR_Y, left: 2880, right: 3300 },
+    { kind: 'kitty', x: 3520, y: FLOOR_Y, left: 3360, right: 3800 },
+    { kind: 'mushroom', x: 4300, y: FLOOR_Y, left: 4100, right: 4520 },
+    { kind: 'kitty', x: 4760, y: FLOOR_Y, left: 4600, right: 5000 },
+    { kind: 'snappyTurtle', x: 5100, y: FLOOR_Y, left: 4950, right: 5300 },
+  ],
+  blocks: [
+    { x: 620, y: 380, contains: 'coin' },
+    { x: 684, y: 380, contains: 'cloud' },
+    { x: 748, y: 380, contains: 'coin' },
+    // The kitty suit's first appearance, where the kitties start. Placeholder
+    // placement, not Henry's.
+    { x: 2140, y: 280, contains: 'kittySuit' },
+    { x: 2980, y: 380, contains: 'fireball' },
+    { x: 3700, y: 370, contains: 'coin' },
+    { x: 4620, y: 260, contains: 'heart' },
+  ],
+  coins: [
+    ...coinArc(300, 560, 5),
+    ...coinRow(560, 440, 3),
+    ...coinRow(920, 340, 3),
+    ...coinArc(1420, 560, 5),
+    ...coinRow(2080, 340, 4),
+    ...coinArc(2640, 560, 5),
+    ...coinRow(3300, 330, 3),
+    ...coinArc(3940, 560, 5),
+    ...coinRow(4560, 320, 4),
+    ...coinRow(4900, 560, 4),
+    ...coinRow(5150, 420, 3),
+  ],
+  icicles: [],
+  checkpoints: [
+    { x: 1240, y: FLOOR_Y },
+    { x: 2600, y: FLOOR_Y },
+    { x: 3970, y: FLOOR_Y },
+  ],
+  goal: { x: 5340, y: FLOOR_Y },
+};
+
+// ---------------------------------------------------------------------------
+// Level 7 — Frozen Falls. Ice platforms and icicles again, now with kitties
+// alongside the fire foes and butterflies.
+// ---------------------------------------------------------------------------
+const LEVEL_7: LevelDef = {
+  id: 7,
+  name: 'Frozen Falls',
+  theme: 'ice',
+  worldWidth: 5800,
+  playerStart: { x: 120, y: FLOOR_Y },
+  startingPowerUp: 'cloud',
+  platforms: [
+    // Every gap here is 150-170 wide, comfortably inside a full-speed jump.
+    ground(0, 900),
+    ground(1050, 850),
+    ground(2060, 950),
+    ground(3160, 850),
+    ground(4180, 1620),
+
+    plat(420, 490, 180),
+    plat(700, 380, 160),
+
+    plat(960, 520, 140, 'ice'),
+    plat(1240, 430, 180, 'ice'),
+    plat(1560, 340, 180),
+
+    plat(2100, 500, 160, 'ice'),
+    plat(2400, 400, 200),
+    plat(2700, 470, 180, 'ice'),
+
+    plat(3200, 520, 160),
+    plat(3500, 400, 220, 'ice'),
+    plat(3800, 480, 180),
+    plat(4050, 360, 160),
+
+    plat(4400, 480, 200, 'ice'),
+    plat(4750, 380, 200),
+    plat(5100, 470, 200),
+    plat(5450, 380, 180),
+  ],
+  enemies: [
+    { kind: 'fireFoe', x: 620, y: FLOOR_Y, left: 380, right: 860 },
+    { kind: 'kitty', x: 1300, y: 430, left: 1250, right: 1400 },
+    { kind: 'snappyTurtle', x: 1700, y: FLOOR_Y, left: 1520, right: 1860 },
+    { kind: 'butterfly', x: 2200, y: 260, left: 1980, right: 2560 },
+    { kind: 'kitty', x: 2500, y: FLOOR_Y, left: 2360, right: 2820 },
+    { kind: 'fireFoe', x: 2900, y: FLOOR_Y, left: 2760, right: 3000 },
+    { kind: 'kitty', x: 3500, y: FLOOR_Y, left: 3320, right: 3900 },
+    { kind: 'butterfly', x: 3900, y: 240, left: 3620, right: 4200 },
+    { kind: 'mushroom', x: 4400, y: FLOOR_Y, left: 4280, right: 4680 },
+    { kind: 'kitty', x: 4900, y: FLOOR_Y, left: 4720, right: 5100 },
+    { kind: 'fireFoe', x: 5400, y: FLOOR_Y, left: 5240, right: 5680 },
+  ],
+  blocks: [
+    { x: 480, y: 370, contains: 'fireball' },
+    { x: 544, y: 370, contains: 'coin' },
+    // Placeholder placement, not Henry's: a kitty suit among the kitties.
+    { x: 2320, y: 280, contains: 'kittySuit' },
+    { x: 3120, y: 400, contains: 'fireball' },
+    { x: 4120, y: 240, contains: 'coin' },
+    { x: 4880, y: 260, contains: 'fireball' },
+    { x: 5200, y: 350, contains: 'heart' },
+  ],
+  coins: [
+    ...coinRow(440, 430, 3),
+    ...coinArc(960, 560, 5),
+    ...coinRow(1600, 280, 4),
+    ...coinArc(2100, 560, 5),
+    ...coinRow(2400, 340, 4),
+    ...coinArc(3200, 560, 5),
+    ...coinRow(3500, 340, 4),
+    ...coinArc(4180, 560, 5),
+    ...coinRow(4750, 320, 4),
+    ...coinRow(5100, 410, 4),
+    ...coinRow(5450, 300, 3),
+  ],
+  // Kept well back from every pit edge, and clear of the platforms — walking
+  // underneath is always safe, jumping through needs timing.
+  icicles: [
+    { x: 1480, y: 250, radius: 80, speed: 1.6, arms: 2 },
+    { x: 2600, y: 300, radius: 100, speed: -1.4, arms: 3 },
+    { x: 4600, y: 310, radius: 100, speed: 1.8, arms: 2 },
+    { x: 5450, y: 410, radius: 100, speed: -1.9, arms: 3 },
+  ],
+  checkpoints: [
+    { x: 850, y: FLOOR_Y },
+    { x: 1850, y: FLOOR_Y },
+    { x: 2960, y: FLOOR_Y },
+    { x: 3960, y: FLOOR_Y },
+  ],
+  goal: { x: 5760, y: FLOOR_Y },
+};
+
+// ---------------------------------------------------------------------------
+// Level 8 — a short approach, a tiny tunnel, then Shellcracker's Mom.
+// ---------------------------------------------------------------------------
+const LEVEL_8: LevelDef = {
+  id: 8,
+  name: "Mom's Beach House",
+  theme: 'shore',
+  worldWidth: 2900,
+  playerStart: { x: 120, y: FLOOR_Y },
+  startingPowerUp: 'fireball',
+  platforms: [
+    ground(0, 2900),
+    plat(420, 480, 180),
+    plat(680, 380, 160),
+    plat(1350, 460, 200),
+    // Arena furniture: ledges to dodge onto, like levels 3 and 5.
+    plat(1600, 460, 200),
+    plat(2200, 460, 200),
+    plat(1900, 320, 200),
+  ],
+  enemies: [
+    { kind: 'snappyTurtle', x: 700, y: FLOOR_Y, left: 540, right: 860 },
+    { kind: 'mushroom', x: 1150, y: FLOOR_Y, left: 1050, right: 1300 },
+  ],
+  blocks: [
+    { x: 560, y: 360, contains: 'heart' },
+    { x: 820, y: 260, contains: 'fireball' },
+    // Boss-arena blocks refill (see buildTerrain), so the fight can't run dry.
+    { x: 1650, y: 340, contains: 'fireball' },
+    { x: 2250, y: 340, contains: 'fireball' },
+    { x: 1950, y: 200, contains: 'star' },
+    { x: 1850, y: 200, contains: 'heart' },
+    { x: 2050, y: 200, contains: 'oneup' },
+    { x: 2150, y: 200, contains: 'mushroom' },
+  ],
+  coins: [
+    ...coinRow(300, 560, 4),
+    ...coinRow(460, 420, 3),
+    ...coinRow(600, 300, 3),
+    ...coinRow(760, 320, 3),
+    ...coinRow(950, 300, 3),
+    ...coinRow(1100, 560, 4),
+    ...coinRow(1300, 560, 4),
+    ...coinArc(1750, 300, 5),
+    ...coinRow(2000, 560, 4),
+    ...coinRow(2300, 300, 4),
+    ...coinArc(2450, 560, 5),
+  ],
+  icicles: [],
+  // A flag right before the sign, so the tunnel is never a surprise.
+  checkpoints: [
+    { x: 820, y: FLOOR_Y },
+    { x: 1200, y: FLOOR_Y },
+  ],
+  boss: { id: 'shellcrackerMom', x: 2400, y: FLOOR_Y },
+  // The whole tunnel sits well before boss.x - 900 (1500), so the arena
+  // blocks refill and the boss hasn't woken by the time it's crossed.
+  tunnels: [{ x: 900, w: 100 }],
+};
+
+// ---------------------------------------------------------------------------
+// Level 9 — The Impossible Climb. Henry's deliberately hard level: the
+// densest enemies and hardest platforming so far, but every gap is still
+// jumpable and every platform still reachable.
+// ---------------------------------------------------------------------------
+const LEVEL_9: LevelDef = {
+  id: 9,
+  name: 'The Impossible Climb',
+  theme: 'galactic',
+  worldWidth: 6400,
+  playerStart: { x: 120, y: FLOOR_Y },
+  startingPowerUp: 'cloud',
+  platforms: [
+    ground(0, 820),
+    ground(990, 720),
+    ground(1870, 660),
+    ground(2700, 900),
+    ground(3760, 700),
+    ground(4630, 1770),
+
+    plat(360, 500, 180),
+    plat(640, 390, 160),
+
+    plat(880, 520, 140),
+    plat(1180, 420, 200),
+    plat(1500, 330, 180),
+
+    plat(1760, 470, 160),
+    plat(2060, 380, 200),
+    plat(2380, 300, 180),
+    plat(2600, 470, 160),
+
+    plat(2960, 500, 180),
+    plat(3260, 390, 200),
+    plat(3560, 300, 180),
+    plat(3660, 500, 140),
+
+    plat(4020, 470, 180),
+    plat(4320, 360, 200),
+    plat(4560, 500, 160),
+
+    plat(4900, 440, 200),
+    plat(5240, 340, 200),
+    plat(5580, 460, 200),
+    plat(5900, 360, 180),
+  ],
+  enemies: [
+    { kind: 'fireFoe', x: 560, y: FLOOR_Y, left: 300, right: 780 },
+    { kind: 'kitty', x: 820, y: FLOOR_Y, left: 700, right: 960 },
+    { kind: 'butterfly', x: 900, y: 250, left: 700, right: 1200 },
+    { kind: 'snappyTurtle', x: 1300, y: FLOOR_Y, left: 1040, right: 1660 },
+    { kind: 'mushroom', x: 1240, y: 420, left: 1190, right: 1360 },
+    { kind: 'kitty', x: 1600, y: FLOOR_Y, left: 1500, right: 1700 },
+    { kind: 'fireFoe', x: 2100, y: FLOOR_Y, left: 1940, right: 2480 },
+    { kind: 'butterfly', x: 2400, y: 220, left: 2120, right: 2700 },
+    { kind: 'kitty', x: 2650, y: FLOOR_Y, left: 2550, right: 2800 },
+    { kind: 'snappyTurtle', x: 2900, y: FLOOR_Y, left: 2760, right: 3200 },
+    { kind: 'mushroom', x: 3340, y: 390, left: 3280, right: 3440 },
+    { kind: 'kitty', x: 3480, y: FLOOR_Y, left: 3300, right: 3600 },
+    { kind: 'fireFoe', x: 3520, y: FLOOR_Y, left: 3320, right: 3780 },
+    { kind: 'butterfly', x: 4100, y: 230, left: 3860, right: 4400 },
+    { kind: 'kitty', x: 4300, y: FLOOR_Y, left: 4180, right: 4460 },
+    { kind: 'snappyTurtle', x: 4900, y: FLOOR_Y, left: 4720, right: 5120 },
+    { kind: 'fireFoe', x: 5400, y: FLOOR_Y, left: 5220, right: 5680 },
+    { kind: 'kitty', x: 5750, y: FLOOR_Y, left: 5620, right: 5900 },
+    { kind: 'mushroom', x: 5960, y: 360, left: 5910, right: 6060 },
+    { kind: 'kitty', x: 6200, y: FLOOR_Y, left: 6080, right: 6350 },
+  ],
+  blocks: [
+    { x: 420, y: 370, contains: 'fireball' },
+    { x: 700, y: 260, contains: 'coin' },
+    { x: 1560, y: 200, contains: 'star' },
+    { x: 2120, y: 250, contains: 'heart' },
+    { x: 2440, y: 170, contains: 'coin' },
+    { x: 3320, y: 260, contains: 'fireball' },
+    { x: 3620, y: 170, contains: 'mushroom' },
+    { x: 4380, y: 230, contains: 'heart' },
+    { x: 5300, y: 210, contains: 'fireball' },
+    { x: 5960, y: 230, contains: 'star' },
+    { x: 6200, y: 230, contains: 'coin' },
+  ],
+  coins: [
+    ...coinArc(240, 560, 5),
+    ...coinRow(400, 430, 3),
+    ...coinArc(830, 560, 4),
+    ...coinRow(1220, 360, 4),
+    ...coinArc(1740, 560, 4),
+    ...coinRow(2100, 320, 4),
+    ...coinArc(2640, 560, 5),
+    ...coinRow(3300, 330, 4),
+    ...coinArc(3720, 560, 4),
+    ...coinRow(4360, 300, 4),
+    ...coinArc(4600, 560, 5),
+    ...coinRow(5280, 280, 4),
+    ...coinRow(5940, 300, 3),
+    ...coinRow(6150, 560, 4),
+  ],
+  icicles: [
+    { x: 1300, y: 250, radius: 80, speed: 1.7, arms: 3 },
+    { x: 2980, y: 380, radius: 100, speed: -1.5, arms: 2 },
+    { x: 4150, y: 400, radius: 100, speed: 2.0, arms: 3 },
+    { x: 5060, y: 400, radius: 100, speed: -1.8, arms: 3 },
+    { x: 6150, y: 300, radius: 90, speed: 1.6, arms: 2 },
+  ],
+  checkpoints: [
+    { x: 780, y: FLOOR_Y },
+    { x: 1680, y: FLOOR_Y },
+    { x: 2500, y: FLOOR_Y },
+    { x: 3570, y: FLOOR_Y },
+    { x: 4430, y: FLOOR_Y },
+  ],
+  goal: { x: 6360, y: FLOOR_Y },
+};
+
+// ---------------------------------------------------------------------------
+// Level 10 — a short approach, a tiny tunnel, then the Kitty Raider.
+// ---------------------------------------------------------------------------
+const LEVEL_10: LevelDef = {
+  id: 10,
+  name: "Kitty Raider's Lair",
+  theme: 'galactic',
+  worldWidth: 3000,
+  playerStart: { x: 120, y: FLOOR_Y },
+  startingPowerUp: 'fireball',
+  platforms: [
+    ground(0, 3000),
+    plat(420, 480, 180),
+    plat(700, 380, 160),
+    plat(1300, 460, 200),
+    // Arena furniture: ledges to dodge onto, like levels 3 and 5.
+    plat(1700, 460, 200),
+    plat(2300, 460, 200),
+    plat(2000, 320, 200),
+  ],
+  enemies: [
+    { kind: 'kitty', x: 750, y: FLOOR_Y, left: 600, right: 900 },
+    { kind: 'snappyTurtle', x: 1200, y: FLOOR_Y, left: 1150, right: 1300 },
+  ],
+  blocks: [
+    // Henry: power-up blocks in the Kitty Raider's level are "normal random",
+    // in every mode. Star and Mushroom hurt bosses too, so a random roll
+    // never leaves the fight unwinnable, and arena blocks refill.
+    { x: 480, y: 360, contains: 'random' },
+    { x: 820, y: 250, contains: 'random' },
+    // Boss-arena blocks refill (see buildTerrain), so the fight can't run dry.
+    { x: 1780, y: 340, contains: 'random' },
+    { x: 2380, y: 340, contains: 'random' },
+    { x: 2080, y: 200, contains: 'random' },
+    { x: 1980, y: 200, contains: 'random' },
+    { x: 2180, y: 200, contains: 'random' },
+    { x: 2280, y: 200, contains: 'random' },
+  ],
+  coins: [
+    ...coinRow(300, 560, 4),
+    ...coinRow(460, 420, 3),
+    ...coinRow(600, 300, 3),
+    ...coinRow(760, 320, 3),
+    ...coinRow(950, 300, 3),
+    ...coinRow(1150, 560, 4),
+    ...coinRow(1350, 560, 4),
+    ...coinArc(1850, 300, 5),
+    ...coinRow(2100, 560, 4),
+    ...coinRow(2400, 300, 4),
+    ...coinArc(2550, 560, 5),
+  ],
+  icicles: [],
+  checkpoints: [
+    { x: 920, y: FLOOR_Y },
+    { x: 1350, y: FLOOR_Y },
+  ],
+  boss: { id: 'kittyRaider', x: 2500, y: FLOOR_Y },
+  // Well before boss.x - 900 (1600), so the arena blocks refill and the boss
+  // hasn't woken by the time it's crossed.
+  tunnels: [{ x: 1000, w: 100 }],
+};
+
+// ---------------------------------------------------------------------------
+// Level 11 — the last level: a short approach, a tiny tunnel, then Boo Boo
+// Bot Head.
+// ---------------------------------------------------------------------------
+const LEVEL_11: LevelDef = {
+  id: 11,
+  name: "Boo Boo Bot's Base",
+  theme: 'ice',
+  worldWidth: 3100,
+  playerStart: { x: 120, y: FLOOR_Y },
+  startingPowerUp: 'fireball',
+  platforms: [
+    ground(0, 3100),
+    plat(420, 480, 180, 'ice'),
+    plat(850, 460, 180, 'ice'),
+    plat(1350, 460, 200),
+    // Arena furniture: ledges to dodge onto, like levels 3 and 5.
+    plat(1900, 460, 200),
+    plat(2500, 460, 200),
+    plat(2200, 320, 200),
+  ],
+  enemies: [
+    { kind: 'kitty', x: 700, y: FLOOR_Y, left: 550, right: 900 },
+    { kind: 'fireFoe', x: 1300, y: FLOOR_Y, left: 1250, right: 1400 },
+  ],
+  blocks: [
+    { x: 480, y: 360, contains: 'heart' },
+    { x: 900, y: 260, contains: 'fireball' },
+    // Boss-arena blocks refill (see buildTerrain), so the fight can't run dry.
+    { x: 1980, y: 340, contains: 'fireball' },
+    { x: 2580, y: 340, contains: 'fireball' },
+    { x: 2280, y: 200, contains: 'star' },
+    { x: 2180, y: 200, contains: 'heart' },
+    { x: 2380, y: 200, contains: 'oneup' },
+    { x: 2480, y: 200, contains: 'mushroom' },
+  ],
+  coins: [
+    ...coinRow(300, 560, 4),
+    ...coinRow(460, 420, 3),
+    ...coinRow(600, 300, 3),
+    ...coinRow(760, 320, 3),
+    ...coinRow(1150, 300, 3),
+    ...coinRow(1350, 560, 4),
+    ...coinRow(1550, 560, 4),
+    ...coinArc(1950, 300, 5),
+    ...coinRow(2200, 560, 4),
+    ...coinRow(2500, 300, 4),
+    ...coinArc(2650, 560, 5),
+  ],
+  // Clear of every platform, well above head height.
+  icicles: [
+    { x: 500, y: 280, radius: 80, speed: 1.6, arms: 2 },
+    { x: 1450, y: 300, radius: 90, speed: -1.5, arms: 3 },
+  ],
+  checkpoints: [
+    { x: 1020, y: FLOOR_Y },
+    { x: 1550, y: FLOOR_Y },
+  ],
+  boss: { id: 'shellcrackerDad', x: 2600, y: FLOOR_Y },
+  // Well before boss.x - 900 (1700), so the arena blocks refill and the boss
+  // hasn't woken by the time it's crossed.
+  tunnels: [{ x: 1100, w: 100 }],
+};
+
+export const LEVELS: LevelDef[] = [
+  LEVEL_1,
+  LEVEL_2,
+  LEVEL_3,
+  LEVEL_4,
+  LEVEL_5,
+  LEVEL_6,
+  LEVEL_7,
+  LEVEL_8,
+  LEVEL_9,
+  LEVEL_10,
+  LEVEL_11,
+];
 
 export function getLevel(id: number): LevelDef {
   return LEVELS.find((l) => l.id === id) ?? LEVELS[0];

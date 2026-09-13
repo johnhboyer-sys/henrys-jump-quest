@@ -108,6 +108,9 @@ export class UIScene extends Phaser.Scene {
 
   create(data: { levelName: string; levelId?: number }): void {
     this.levelId = data.levelId ?? 1;
+    // The scene object is reused between levels, so a beaten boss's bar would
+    // otherwise follow you into the next level.
+    this.boss = null;
     const panel = this.add.graphics().setDepth(0);
     panel.fillStyle(0x000000, 0.35);
     panel.fillRoundedRect(16, 14, 430, 74, 10);

@@ -8,10 +8,9 @@
  * has and transforms them the same way regardless of how many levels there
  * are or what they contain.
  *
- * NOTE for the merge: if the levels/bosses branch adds a new kind of placed
- * object to `LevelDef` (the brief mentions a possible "tunnel"), `widenGaps`
- * below will need a line added for it too, the same way it handles platforms,
- * enemies, blocks, coins, icicles, checkpoints, the goal and the boss.
+ * Adding a new kind of placed object to `LevelDef` means adding a line for it
+ * to `widenGaps` below, the same way it handles platforms, enemies, blocks,
+ * coins, icicles, checkpoints, tunnels, the goal and the boss.
  */
 
 import { NEARLY_IMPOSSIBLE } from './game';
@@ -64,6 +63,7 @@ function widenGaps(level: LevelDef): LevelDef {
     coins: level.coins.map((c: CoinDef) => ({ ...c, x: shift(c.x) })),
     icicles: level.icicles.map((i: IcicleDef) => ({ ...i, x: shift(i.x) })),
     checkpoints: level.checkpoints.map((cp) => ({ x: shift(cp.x), y: cp.y })),
+    tunnels: level.tunnels?.map((t) => ({ ...t, x: shift(t.x) })),
     goal: level.goal ? { x: shift(level.goal.x), y: level.goal.y } : undefined,
     boss: level.boss ? { ...level.boss, x: shift(level.boss.x) } : undefined,
     playerStart: { x: shift(level.playerStart.x), y: level.playerStart.y },
