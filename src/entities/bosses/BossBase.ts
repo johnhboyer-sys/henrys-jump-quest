@@ -183,9 +183,24 @@ export abstract class BossBase extends Phaser.Physics.Arcade.Sprite {
 
   // -- State machine --------------------------------------------------------
 
+  /**
+   * Called by the scene when it un-pauses, with how long the pause lasted.
+   * `modeUntil`/`nextAttackAt` are absolute timestamps against the scene
+   * clock, which keeps ticking through a pause — push them forward by the
+   * same amount so a telegraph or cooldown resumes with the time it had left.
+   * A subclass with its own `...Until`/`...At` fields overrides this and
+   * calls super first.
+   */
+  shiftTimers(ms: number): void {
+    this.modeUntil += ms;
+    this.nextAttackAt += ms;
+  }
+
   preUpdate(time: number, delta: number): void {
     super.preUpdate(time, delta);
     if (!this.active || !this.world || this.mode === 'dead') return;
+    // Frozen while the scene is paused — see shiftTimers.
+    if (this.scene.time.paused) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
 
     switch (this.mode) {

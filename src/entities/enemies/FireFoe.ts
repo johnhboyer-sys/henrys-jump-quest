@@ -24,6 +24,11 @@ export class FireFoe extends Enemy {
     });
   }
 
+  override shiftTimers(ms: number): void {
+    super.shiftTimers(ms);
+    this.nextHopAt += ms;
+  }
+
   protected behave(time: number): void {
     const body = this.body as Phaser.Physics.Arcade.Body;
     this.patrol();

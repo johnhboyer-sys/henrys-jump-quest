@@ -15,6 +15,11 @@ export class Mushroom extends Enemy {
     super(scene, spawn, ENEMIES.mushroom, elite);
   }
 
+  override shiftTimers(ms: number): void {
+    super.shiftTimers(ms);
+    this.plantedUntil += ms;
+  }
+
   protected behave(time: number): void {
     const body = this.body as Phaser.Physics.Arcade.Body;
 

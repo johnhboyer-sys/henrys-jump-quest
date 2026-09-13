@@ -166,9 +166,22 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     });
   }
 
+  /**
+   * Called by the scene when it un-pauses, with how long the pause lasted.
+   * `nextAttackAt` is an absolute timestamp against the scene clock, which
+   * keeps ticking through a pause — push it forward by the same amount so a
+   * cooldown resumes with the time it had left. A subclass with its own
+   * `...Until`/`...At` fields overrides this and calls super first.
+   */
+  shiftTimers(ms: number): void {
+    this.nextAttackAt += ms;
+  }
+
   preUpdate(time: number, delta: number): void {
     super.preUpdate(time, delta);
     if (!this.active || !this.world || this.held) return;
+    // Frozen while the scene is paused — see shiftTimers.
+    if (this.scene.time.paused) return;
     this.behave(time);
   }
 

@@ -22,11 +22,19 @@ export class ShellcrackerMom extends BossBase {
   preUpdate(time: number, delta: number): void {
     super.preUpdate(time, delta);
     if (!this.active || this.isDead || !this.world) return;
+    // Frozen while the scene is paused — see BossBase.shiftTimers.
+    if (this.scene.time.paused) return;
 
     if (time >= this.nextMinionCheckAt) {
       this.nextMinionCheckAt = time + MOM_ATTACKS.minionRespawnMs;
       if (this.world.countMinionsFor(this) < MOM_ATTACKS.minionKeepAlive) this.callOneMinion();
     }
+  }
+
+  override shiftTimers(ms: number): void {
+    super.shiftTimers(ms);
+    this.breathTickAt += ms;
+    this.nextMinionCheckAt += ms;
   }
 
   private callOneMinion(): void {

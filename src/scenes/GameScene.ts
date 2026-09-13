@@ -54,6 +54,9 @@ interface GameSceneData {
   spawnNearGoal?: boolean;
 }
 
+/** No more than this many ordinary enemies (minions included) alive at once. */
+const MINION_CAP = 8;
+
 export class GameScene extends Phaser.Scene implements EnemyWorld {
   player!: Player;
   private level!: LevelDef;
@@ -116,6 +119,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   private safeGroundSampledAt = 0;
   private finished = false;
   private paused = false;
+  private pausedAt = 0;
   private bossContactAt = 0;
 
   constructor() {
@@ -148,6 +152,9 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.goal = undefined;
     this.boss = undefined;
     this.paused = false;
+    // A restart from the pause card (Shift+R) must not carry a frozen clock
+    // into the fresh level.
+    this.time.paused = false;
     this.holeOpen = false;
     this.hole = undefined;
     this.standingOnHole = false;
@@ -412,46 +419,94 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     });
   }
 
-  /** Freeze the world and show the pause card; press again to carry on. */
+  /**
+   * Freeze the world and show the pause card; press again to carry on.
+   *
+   * Pausing the physics world stops anything moving, but sprites' own
+   * `preUpdate` (bosses' attack state machines, enemies' AI, the player's
+   * form/status expiry) is driven by the scene's update list, not physics —
+   * it keeps running unless told to stop. So every one of them checks
+   * `scene.time.paused` and bails out early, and pausing `this.time` here
+   * also freezes every `delayedCall` (minion warnings, boss telegraphs,
+   * refills) for free, since Phaser's Clock only advances its timers while
+   * unpaused.
+   *
+   * What `this.time` does NOT freeze is `scene.time.now` itself — Phaser
+   * keeps that ticking against the real clock even while paused, since it is
+   * also the game's frame timestamp. That is exactly why every hand-rolled
+   * `...Until`/`...At` field (compared against `time.now`) needs shifting
+   * forward by the paused duration on resume — otherwise a telegraph or
+   * cooldown that still had time left would find itself already expired.
+   */
   private togglePause(): void {
     if (this.finished || this.holeOpen) return;
     this.paused = !this.paused;
     if (this.paused) {
+      this.pausedAt = this.time.now;
       this.physics.world.pause();
+      this.time.paused = true;
       this.events.emit('pause', { levelName: this.level.name, levelId: this.level.id });
     } else {
+      const pausedMs = Math.max(0, this.time.now - this.pausedAt);
+      this.time.paused = false;
       this.physics.world.resume();
+      this.shiftAllTimers(pausedMs);
       this.events.emit('resume');
     }
   }
 
   // -- Moo Moo Cow Mom Hole ---------------------------------------------------
 
-  /** Down Arrow while standing on the hole: freeze the world and open the picker. */
+  /**
+   * Down Arrow while standing on the hole: freeze the world and open the
+   * picker. Frozen the same way as the pause card (see togglePause), so no
+   * enemy or boss acts while the kid is choosing.
+   */
   private openHole(): void {
     if (this.finished || this.paused) return;
     this.holeOpen = true;
     this.paused = true;
+    this.pausedAt = this.time.now;
     this.physics.world.pause();
+    this.time.paused = true;
     this.scene.launch('Hole', { originLevelId: this.level.id });
     this.scene.bringToTop('Hole');
   }
 
   /** Called by HoleScene when the player climbs back out (ESC, or nothing beaten yet). */
   resumeFromHole(): void {
+    const pausedMs = Math.max(0, this.time.now - this.pausedAt);
     this.holeOpen = false;
     this.paused = false;
+    this.time.paused = false;
     this.physics.world.resume();
+    this.shiftAllTimers(pausedMs);
   }
 
   /** Called by HoleScene once a boss is picked. Rebuilds the scene as the arena fight. */
   startHoleFight(bossId: string): void {
+    this.time.paused = false;
     this.scene.stop('Hole');
     this.scene.start('Game', { levelId: this.originLevelId, holeBossId: bossId });
   }
 
+  /** Pushes every absolute timestamp still ticking against the scene clock
+   * forward by however long the pause lasted. See togglePause. */
+  private shiftAllTimers(ms: number): void {
+    if (ms <= 0) return;
+    this.player.shiftTimers(ms);
+    this.boss?.shiftTimers(ms);
+    for (const obj of this.enemies.getChildren()) (obj as Enemy).shiftTimers(ms);
+    for (const obj of this.playerShots.getChildren()) (obj as Projectile).shiftTimers(ms);
+    for (const obj of this.enemyShots.getChildren()) (obj as Projectile).shiftTimers(ms);
+    for (const obj of this.backfireShots.getChildren()) (obj as Projectile).shiftTimers(ms);
+    // God Tom's thrown enemies vanish at an absolute time too.
+    for (const [enemy, dieAt] of this.thrownEnemies) this.thrownEnemies.set(enemy, dieAt + ms);
+  }
+
   /** Called by the pause card when the player chooses to leave. */
   quitToMenu(): void {
+    this.time.paused = false;
     this.physics.world.resume();
     this.scene.stop('UI');
     this.scene.start('Menu');
@@ -467,13 +522,27 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (!availableSkins(save, this.level.id).includes(skinId)) {
       return { ok: false, reason: "You don't have that skin." };
     }
-    const def = SKINS[skinId];
-    const feetY = this.player.y;
-    const x = this.player.x;
-    // overlapRect treats a body merely touching a surface as overlapping it —
-    // and standing still, your feet always touch the ground you're on. Inset
-    // the probe by a couple of px so resting on the floor doesn't self-refuse;
-    // a real low ceiling or wall still overlaps well inside that margin.
+    if (!this.bodyFits(skinId, this.player.x, this.player.y)) {
+      return { ok: false, reason: "That skin won't fit here!" };
+    }
+    this.player.setSkin(skinId);
+    setSkin(skinId);
+    this.emitHud();
+    return { ok: true };
+  }
+
+  /**
+   * Would `skin`'s body overlap a solid standing at (x, feetY)? Shared by the
+   * pause-card skin switch and by `respawn`, so a respawn spot is judged the
+   * same way a mid-level switch is.
+   *
+   * overlapRect treats a body merely touching a surface as overlapping it —
+   * and standing still, your feet always touch the ground you're on. Inset
+   * the probe by a couple of px so resting on the floor doesn't self-refuse;
+   * a real low ceiling or wall still overlaps well inside that margin.
+   */
+  private bodyFits(skin: SkinId, x: number, feetY: number): boolean {
+    const def = SKINS[skin];
     const pad = 3;
     const blocked = this.physics.overlapRect(
       x - def.bodyW / 2 + pad,
@@ -483,13 +552,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       false,
       true,
     );
-    if (blocked.length > 0) {
-      return { ok: false, reason: "That skin won't fit here!" };
-    }
-    this.player.setSkin(skinId);
-    setSkin(skinId);
-    this.emitHud();
-    return { ok: true };
+    return blocked.length === 0;
   }
 
   private setupCamera(level: LevelDef): void {
@@ -519,8 +582,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   spawnMinion(kind: EnemyKind, x: number, opts?: { galactic?: boolean; owner?: object }): void {
     const galactic = opts?.galactic ?? true;
     const clampedX = Phaser.Math.Clamp(x, 80, this.level.worldWidth - 80);
-    const alive = this.enemies.getChildren().filter((e) => e.active).length;
-    if (alive >= 8) return;
+    if (this.aliveEnemyCount() >= MINION_CAP) return;
 
     const warn = this.add.image(clampedX, 200, 'spark').setTint(0xb69cff).setDepth(30);
     this.tweens.add({
@@ -537,6 +599,11 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       // Every boss is a Phaser game object, so `active` going false on death
       // is enough to catch it — and it keeps "all its minions vanish" true.
       if (opts?.owner && (opts.owner as { active?: boolean }).active === false) return;
+      // Re-check the cap right here, not just when this call was queued: a
+      // boss that queues several minions at once (the Kitty Raider brings
+      // three per kitty killed) can have every one of them pass the check
+      // above before any of them actually exists yet.
+      if (this.aliveEnemyCount() >= MINION_CAP) return;
       const minion = createEnemy(
         this,
         { kind, x: clampedX, y: 200, left: clampedX - 260, right: clampedX + 260 },
@@ -546,6 +613,10 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       this.enemies.add(minion);
       play('block');
     });
+  }
+
+  private aliveEnemyCount(): number {
+    return this.enemies.getChildren().filter((e) => e.active).length;
   }
 
   /** How many live minions were spawned with this owner. */
@@ -1108,13 +1179,29 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
   private respawn(): void {
     if (this.finished) return;
-    const spot = this.bestRespawn();
+    const spot = this.safeRespawnSpot(this.bestRespawn());
     this.player.setAngle(0);
     this.player.resetForRespawn(spot.x, spot.y);
     // Clear anything still in the air, so you don't respawn into a fireball.
     this.enemyShots.getChildren().forEach((s) => (s as Projectile).disable());
     this.cameras.main.flash(200, 255, 255, 255);
     this.emitHud();
+  }
+
+  /**
+   * A safe-ground sample taken while wearing a small skin can still land
+   * inside a tunnel slot too narrow for whatever skin the player is wearing
+   * now (sampleSafeGround excludes tunnels going forward, but an old sample
+   * predating that skin switch can still be on the books). If the current
+   * skin's body would not fit at the chosen spot, fall back to the last
+   * checkpoint, and if even that fails, the level's own start.
+   */
+  private safeRespawnSpot(spot: { x: number; y: number }): { x: number; y: number } {
+    if (this.bodyFits(this.player.skin, spot.x, spot.y)) return spot;
+    if (this.bodyFits(this.player.skin, this.respawnPoint.x, this.respawnPoint.y)) {
+      return this.respawnPoint;
+    }
+    return this.level.playerStart;
   }
 
   /**
@@ -1134,8 +1221,19 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     // Do not memorise a spot we are being hurt on.
     if (this.physics.overlap(this.player, this.spikes)) return;
     if (this.physics.overlap(this.player, this.enemies)) return;
+    // Nor one inside a tunnel's slot: it may fit the skin worn right now, but
+    // a bigger skin worn later could get its respawn body embedded in the
+    // wall. See safeRespawnSpot for the belt-and-braces check at respawn time.
+    if (this.isInsideAnyTunnel(this.player.x)) return;
 
     this.safeGround = { x: this.player.x, y: this.player.y };
+  }
+
+  /** True if x falls within any of this level's tunnels, plus a margin either
+   * side — a spot only a smaller skin can stand in must never count as safe. */
+  private isInsideAnyTunnel(x: number): boolean {
+    const pad = 30; // placeholder: not Henry's number
+    return (this.level.tunnels ?? []).some((t) => x >= t.x - pad && x <= t.x + t.w + pad);
   }
 
   /** The furthest-along place it is fair to put the player back. */

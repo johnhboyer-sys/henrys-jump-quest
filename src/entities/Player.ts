@@ -404,12 +404,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return true;
   }
 
-  applyStatus(kind: StatusKind): void {
+  /** `ms` overrides the default duration for `kind` — e.g. the Kitty Raider's
+   * screech, which stuns for a fixed 3s rather than the icicle default. */
+  applyStatus(kind: StatusKind, ms?: number): void {
     if (this.isInvincible) return;
     const now = this.scene.time.now;
-    if (kind === 'slow') this.slowUntil = now + STATUS.slowMs;
-    if (kind === 'freeze') this.frozenUntil = now + STATUS.freezeMs;
-    if (kind === 'stuck') this.stuckUntil = now + STATUS.stickMs;
+    if (kind === 'slow') this.slowUntil = now + (ms ?? STATUS.slowMs);
+    if (kind === 'freeze') this.frozenUntil = now + (ms ?? STATUS.freezeMs);
+    if (kind === 'stuck') this.stuckUntil = now + (ms ?? STATUS.stickMs);
   }
 
   bounce(): void {
@@ -480,8 +482,34 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  /**
+   * Called by the scene when it un-pauses, with how long the pause lasted.
+   * Every absolute timestamp below is compared against `scene.time.now`,
+   * which keeps ticking through a pause even though preUpdate does not run —
+   * so each one is pushed forward by the same amount, and whatever was
+   * counting down keeps exactly the time it had left.
+   */
+  shiftTimers(ms: number): void {
+    this.invulnUntil += ms;
+    this.slowUntil += ms;
+    this.frozenUntil += ms;
+    this.stuckUntil += ms;
+    this.formUntil += ms;
+    this.lastFireAt += ms;
+    this.lastAttackAt += ms;
+    this.jumpPressedAt += ms;
+    this.lastGroundedAt += ms;
+    this.lastScratchAt += ms;
+    // God Tom's stacks each last 9 seconds of play, not of pause.
+    for (const s of this.godTomStacksList) s.expiresAt += ms;
+  }
+
   preUpdate(time: number, delta: number): void {
     super.preUpdate(time, delta);
+    // Frozen while the scene is paused: form/status timers are all absolute
+    // timestamps against the scene clock, and that clock keeps advancing
+    // through a pause even though this method stops being meaningful to run.
+    if (this.scene.time.paused) return;
 
     this.updateGodTomStacks(time);
 
