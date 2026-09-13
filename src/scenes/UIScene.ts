@@ -3,7 +3,7 @@ import { VIEW, PLAYER } from '../config/game';
 import { POWERUPS, type PowerUpKind } from '../config/powerups';
 import { SKINS, SKINS_CONFIG, type SkinId } from '../config/skins';
 import { availableSkins, loadSave } from '../systems/SaveSystem';
-import { touchEnabled, touchInput } from '../systems/TouchInput';
+import { resetTouchInput, touchEnabled, touchInput } from '../systems/TouchInput';
 
 interface HudData {
   hp: number;
@@ -278,8 +278,14 @@ export class UIScene extends Phaser.Scene {
     game.events.on('resume', () => this.hidePause());
     game.events.on('holeWin', (d: HoleEndData) => this.showHoleEnd(true, d.originLevelId));
     game.events.on('holeLose', (d: HoleEndData) => this.showHoleEnd(false, d.originLevelId));
+    // The hole's boss picker covers the screen like a card: no game buttons under it.
+    game.events.on('holeOpen', () => this.setTouchControlsVisible(false));
+    game.events.on('holeClose', () => this.setTouchControlsVisible(true));
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      resetTouchInput();
+      game.events.off('holeOpen');
+      game.events.off('holeClose');
       game.events.off('hud');
       game.events.off('boss');
       game.events.off('complete');
@@ -369,7 +375,8 @@ export class UIScene extends Phaser.Scene {
     const heal = this.makeCircleButton(930, 540, 40, '✚', 'heal');
     wireTap(heal, () => (touchInput.healPressed = true));
 
-    const pause = this.makeCircleButton(1215, 115, 34, '❚❚', 'always');
+    // Below the top-right HUD lines (level name, help, "Skin: …" at y≈74-90).
+    const pause = this.makeCircleButton(1215, 150, 34, '❚❚', 'always');
     wireTap(pause, () => (this.scene.get('Game') as GameSceneLike).requestPause?.());
 
     this.touchButtons = [left, right, jump, down, attack, heal, pause];
@@ -406,6 +413,12 @@ export class UIScene extends Phaser.Scene {
    * game over, level clear, hole end) covers the screen. */
   private setTouchControlsVisible(visible: boolean): void {
     this.touchControlsVisible = visible;
+    // A hidden button can no longer hear its finger lift, so let go of
+    // everything now rather than leave the player running on their own.
+    if (!visible) {
+      resetTouchInput();
+      for (const b of this.touchButtons) b.circle.setFillStyle(0xffffff, 0.35);
+    }
     this.refreshTouchControlVisibility();
   }
 
@@ -707,11 +720,18 @@ export class UIScene extends Phaser.Scene {
 
     const kb = this.input.keyboard!;
     const game = this.scene.get('Game');
+    // One exit only, as on the level-clear card: two taps in the same frame
+    // would otherwise queue two scene starts.
+    let leaving = false;
     const tryAgain = () => {
+      if (leaving) return;
+      leaving = true;
       this.scene.stop();
       game.scene.start('Game', { levelId: this.levelId });
     };
     const toMenu = () => {
+      if (leaving) return;
+      leaving = true;
       this.scene.stop();
       game.scene.start('Menu');
     };

@@ -19,7 +19,7 @@ import { BOSSES, type BossDef } from '../config/bosses';
 import { nearlyImpossible, nearlyImpossibleBoss } from '../config/hardMode';
 import { mooMooArena, weakenHoleBoss } from '../config/mooMoo';
 import { getMode } from '../systems/ModeSystem';
-import { touchInput } from '../systems/TouchInput';
+import { clearTouchTaps, resetTouchInput, touchInput } from '../systems/TouchInput';
 
 import { Player, type SkinId } from '../entities/Player';
 import { Projectile, type ProjectileOptions } from '../entities/Projectile';
@@ -156,6 +156,8 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     // A restart from the pause card (Shift+R) must not carry a frozen clock
     // into the fresh level.
     this.time.paused = false;
+    // No touch press survives into a fresh level.
+    resetTouchInput();
     this.holeOpen = false;
     this.hole = undefined;
     this.standingOnHole = false;
@@ -499,6 +501,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.physics.world.pause();
     this.time.paused = true;
     this.tweens.pauseAll();
+    this.events.emit('holeOpen');
     this.scene.launch('Hole', { originLevelId: this.level.id });
     this.scene.bringToTop('Hole');
   }
@@ -512,6 +515,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.tweens.resumeAll();
     this.physics.world.resume();
     this.shiftAllTimers(pausedMs);
+    this.events.emit('holeClose');
   }
 
   /** Called by HoleScene once a boss is picked. Rebuilds the scene as the arena fight. */
@@ -1460,10 +1464,15 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   // -- Frame ----------------------------------------------------------------
 
   update(time: number, delta: number): void {
-    if (this.paused) return;
+    // A tap that lands on a paused or finished frame must not fire later.
+    if (this.paused) {
+      clearTouchTaps();
+      return;
+    }
     for (const trap of this.traps) trap.update(delta);
 
     if (this.finished || !this.player.isAlive) {
+      clearTouchTaps();
       this.touchingIce = false;
       this.standingOnHole = false;
       return;

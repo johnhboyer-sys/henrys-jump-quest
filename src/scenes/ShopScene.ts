@@ -171,7 +171,14 @@ export class ShopScene extends Phaser.Scene {
     zone.on('pointerout', () => bg.setFillStyle(0xffffff, 0.12));
   }
 
+  /** Set by the first exit, so a second tap in the same frame cannot start another scene. */
+  private leaving = false;
+
   private leave(toNextLevel: boolean): void {
+    if (this.leaving) return;
+    this.leaving = true;
+    // The scene object is reused for the next visit, so clear the flag on the way out.
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => (this.leaving = false));
     play('power');
     if (toNextLevel && this.nextLevelId) this.scene.start('Game', { levelId: this.nextLevelId });
     else this.scene.start('Menu');
