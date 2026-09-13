@@ -65,6 +65,7 @@ export class HoleScene extends Phaser.Scene {
       this.add
         .text(cx, 360, 'ESC — climb back out', { fontFamily: FONT, fontSize: '18px', color: '#9fd8f0' })
         .setOrigin(0.5);
+      this.addTapButton(cx, 420, 220, 60, 'CLIMB OUT', () => this.leave());
     } else {
       this.add
         .text(cx, 200, 'A weaker rematch. Pick your boss:', {
@@ -94,6 +95,7 @@ export class HoleScene extends Phaser.Scene {
           color: '#cfd9e8',
         })
         .setOrigin(0.5);
+      this.addTapButton(cx, 260 + this.bossIds.length * 44 + 84, 220, 60, 'CLIMB OUT', () => this.leave());
 
       this.highlight();
     }
@@ -124,6 +126,19 @@ export class HoleScene extends Phaser.Scene {
     play('power');
     const game = this.scene.get('Game') as HoleHost;
     game.startHoleFight?.(this.bossIds[this.selected]);
+  }
+
+  /** A rectangular tappable button — same look as the rest of the touch layer. */
+  private addTapButton(x: number, y: number, w: number, h: number, label: string, onTap: () => void): void {
+    const bg = this.add.rectangle(x, y, w, h, 0xffffff, 0.12).setStrokeStyle(2, 0xffffff, 0.55);
+    this.add.text(x, y, label, { fontFamily: FONT, fontSize: '20px', color: '#ffffff' }).setOrigin(0.5);
+    const zone = this.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
+    zone.on('pointerdown', () => {
+      bg.setFillStyle(0xffffff, 0.3);
+      onTap();
+    });
+    zone.on('pointerup', () => bg.setFillStyle(0xffffff, 0.12));
+    zone.on('pointerout', () => bg.setFillStyle(0xffffff, 0.12));
   }
 
   private leave(): void {

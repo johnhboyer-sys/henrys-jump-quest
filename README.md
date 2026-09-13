@@ -13,6 +13,9 @@ npm run dev
 
 Then open the URL Vite prints. `npm run build` type-checks and bundles to `dist/`.
 
+To play on a phone or iPad over your home Wi-Fi, run `npm run dev -- --host`
+and open the "Network" URL it prints on the device instead of `localhost`.
+
 ## Controls
 
 | Key | Does |
@@ -28,6 +31,24 @@ Then open the URL Vite prints. `npm run build` type-checks and bundles to `dist/
 | ← → | Normal / Nearly Impossible (menu screen) |
 | S | Cycle skins (menu screen) |
 | M | Mute (menu screen) |
+
+## Touch controls
+
+The keyboard works exactly as above; a touch device (or a desktop browser
+with `?touch=1` on the URL, for testing) also gets on-screen circular buttons
+drawn over the game — Left/Right, Jump (hold for a higher jump, same as the
+keyboard), Down (use the held power-up, or enter the Moo Moo Hole), Attack
+(only shown for a skin with an E attack, or God Tom's pick-up/throw), Heal
+(Nurse only) and Pause. Every card the game can show — the pause card, level
+clear, game over, the hole's win/lose card, the shop and the hole's boss
+picker — also gets big tappable buttons doing the same thing as their
+keyboard shortcut, and the menu screen's rows, PLAY, mode switch, skin cycle
+and mute are all tappable too. Holding a phone upright brings up a "turn your
+phone sideways" overlay below 600px wide in portrait; an iPad plays
+letterboxed upright with no overlay. See `src/systems/TouchInput.ts` for the
+shared touch state and `UIScene.createTouchControls` for the on-screen
+buttons — their exact positions, sizes and alphas are placeholders, easy to
+nudge.
 
 ## Difficulty modes
 

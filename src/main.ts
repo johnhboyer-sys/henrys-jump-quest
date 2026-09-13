@@ -29,6 +29,11 @@ const config: Phaser.Types.Core.GameConfig = {
     pixelArt: false,
     antialias: true,
   },
+  // Touch controls hold down several buttons at once (run + jump + attack),
+  // so the input plugin needs more than the default single active pointer.
+  input: {
+    activePointers: 4,
+  },
   scene: [BootScene, MenuScene, GameScene, UIScene, ShopScene, HoleScene],
 };
 

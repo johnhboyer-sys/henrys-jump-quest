@@ -19,6 +19,7 @@ import { BOSSES, type BossDef } from '../config/bosses';
 import { nearlyImpossible, nearlyImpossibleBoss } from '../config/hardMode';
 import { mooMooArena, weakenHoleBoss } from '../config/mooMoo';
 import { getMode } from '../systems/ModeSystem';
+import { touchInput } from '../systems/TouchInput';
 
 import { Player, type SkinId } from '../entities/Player';
 import { Projectile, type ProjectileOptions } from '../entities/Projectile';
@@ -418,11 +419,29 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     // R sits right next to the WASD keys.
     kb.on('keydown-ESC', () => this.togglePause());
     kb.on('keydown-R', (ev: KeyboardEvent) => {
-      // Not while the hole picker is open: it is a separate scene on top, and a
-      // restart underneath it would leave the picker running.
-      if (!ev.shiftKey || ev.ctrlKey || ev.metaKey || this.holeOpen) return;
-      this.scene.restart({ levelId: this.level.id });
+      if (!ev.shiftKey || ev.ctrlKey || ev.metaKey) return;
+      this.restartLevel();
     });
+  }
+
+  /** Public: the UI's on-screen Pause button, going through the exact same
+   * path as ESC. Does nothing if already paused (or if that would refuse). */
+  requestPause(): void {
+    if (!this.paused) this.togglePause();
+  }
+
+  /** Public: the pause card's RESUME button. */
+  requestResume(): void {
+    if (this.paused) this.togglePause();
+  }
+
+  /** Public: the pause card's RESTART button (and Shift+R). Refused while the
+   * hole picker is open, same as the keyboard shortcut. */
+  restartLevel(): void {
+    // Not while the hole picker is open: it is a separate scene on top, and a
+    // restart underneath it would leave the picker running.
+    if (this.holeOpen) return;
+    this.scene.restart({ levelId: this.level.id });
   }
 
   /**
@@ -1455,20 +1474,27 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (this.player.isTransformed) this.emitHud();
 
     const k = this.keys;
-    const left = k.left.isDown || k.a.isDown;
-    const right = k.right.isDown || k.d.isDown;
+    const left = k.left.isDown || k.a.isDown || touchInput.left;
+    const right = k.right.isDown || k.d.isDown || touchInput.right;
     const jumpDown =
       Phaser.Input.Keyboard.JustDown(k.up) ||
       Phaser.Input.Keyboard.JustDown(k.w) ||
-      Phaser.Input.Keyboard.JustDown(k.space);
-    const jumpHeld = k.up.isDown || k.w.isDown || k.space.isDown;
+      Phaser.Input.Keyboard.JustDown(k.space) ||
+      touchInput.jumpPressed;
+    const jumpHeld = k.up.isDown || k.w.isDown || k.space.isDown || touchInput.jumpHeld;
+    touchInput.jumpPressed = false;
 
     this.player.onIce = this.touchingIce;
     const jumped = this.player.handleInput(left, right, jumpDown, jumpHeld, time);
     if (jumped.didJump) play('jump');
     if (jumped.didDoubleJump) this.cloudPuff();
 
-    if (Phaser.Input.Keyboard.JustDown(k.down) || Phaser.Input.Keyboard.JustDown(k.s)) {
+    const downPressed =
+      Phaser.Input.Keyboard.JustDown(k.down) ||
+      Phaser.Input.Keyboard.JustDown(k.s) ||
+      touchInput.downPressed;
+    touchInput.downPressed = false;
+    if (downPressed) {
       // While standing on the hole, Down enters it instead of using a held power-up.
       if (this.hole && this.standingOnHole && !this.isHoleFight) {
         this.openHole();
@@ -1480,11 +1506,15 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       }
     }
 
-    if (Phaser.Input.Keyboard.JustDown(k.e)) {
+    const attackPressed = Phaser.Input.Keyboard.JustDown(k.e) || touchInput.attackPressed;
+    touchInput.attackPressed = false;
+    if (attackPressed) {
       if (this.player.skin === 'godTom') this.tryGodTomAction();
       else this.tryPlayerAttack(time);
     }
-    if (Phaser.Input.Keyboard.JustDown(k.h)) this.tryNurseHeal();
+    const healPressed = Phaser.Input.Keyboard.JustDown(k.h) || touchInput.healPressed;
+    touchInput.healPressed = false;
+    if (healPressed) this.tryNurseHeal();
 
     this.updateCarriedEnemy();
     this.updateThrownEnemies(time);

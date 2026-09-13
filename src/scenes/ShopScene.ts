@@ -115,6 +115,15 @@ export class ShopScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    // Tappable equivalents of SPACE/ESC. Kept close together (the row list
+    // above can run long) — placeholder position, nudgeable.
+    if (this.nextLevelId) {
+      this.addTapButton(320, 620, 200, 52, 'NEXT LEVEL', () => this.leave(true));
+      this.addTapButton(560, 620, 200, 52, 'MENU', () => this.leave(false));
+    } else {
+      this.addTapButton(440, 620, 200, 52, 'MENU', () => this.leave(false));
+    }
+
     const kb = this.input.keyboard!;
     kb.on('keydown-UP', () => this.move(-1));
     kb.on('keydown-DOWN', () => this.move(1));
@@ -147,6 +156,19 @@ export class ShopScene extends Phaser.Scene {
     play('coin');
     this.note.setText(`You bought the ${item.label}!`).setColor('#7ee6a0');
     this.refresh();
+  }
+
+  /** A rectangular tappable button — same look as the rest of the touch layer. */
+  private addTapButton(x: number, y: number, w: number, h: number, label: string, onTap: () => void): void {
+    const bg = this.add.rectangle(x, y, w, h, 0xffffff, 0.12).setStrokeStyle(2, 0xffffff, 0.55);
+    this.add.text(x, y, label, { fontFamily: FONT, fontSize: '19px', color: '#ffffff' }).setOrigin(0.5);
+    const zone = this.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
+    zone.on('pointerdown', () => {
+      bg.setFillStyle(0xffffff, 0.3);
+      onTap();
+    });
+    zone.on('pointerup', () => bg.setFillStyle(0xffffff, 0.12));
+    zone.on('pointerout', () => bg.setFillStyle(0xffffff, 0.12));
   }
 
   private leave(toNextLevel: boolean): void {

@@ -57,7 +57,12 @@ export class MenuScene extends Phaser.Scene {
 
     this.save = loadSave();
     const save = this.save;
-    this.hero = this.add.image(cx, 648, `${save.skin}-idle`).setOrigin(0.5, 1).setScale(1.7);
+    this.hero = this.add
+      .image(cx, 648, `${save.skin}-idle`)
+      .setOrigin(0.5, 1)
+      .setScale(1.7)
+      .setInteractive({ useHandCursor: true });
+    this.hero.on('pointerdown', () => this.swapSkin());
     this.tweens.add({
       targets: this.hero,
       y: 636,
@@ -90,10 +95,14 @@ export class MenuScene extends Phaser.Scene {
     const modeY = 126;
     this.modeNormalText = this.add
       .text(cx - 16, modeY, 'NORMAL', { fontFamily: FONT, fontSize: '20px' })
-      .setOrigin(1, 0.5);
+      .setOrigin(1, 0.5)
+      .setInteractive({ useHandCursor: true });
     this.modeHardText = this.add
       .text(cx + 16, modeY, 'NEARLY IMPOSSIBLE', { fontFamily: FONT, fontSize: '20px' })
-      .setOrigin(0, 0.5);
+      .setOrigin(0, 0.5)
+      .setInteractive({ useHandCursor: true });
+    this.modeNormalText.on('pointerdown', () => this.chooseMode('normal'));
+    this.modeHardText.on('pointerdown', () => this.chooseMode('nearlyImpossible'));
     this.refreshMode();
 
     this.unlocked = save.unlockedLevel;
@@ -122,7 +131,20 @@ export class MenuScene extends Phaser.Scene {
           fontSize: rowFontSize,
           color: locked ? '#6b7385' : '#ffffff',
         })
-        .setOrigin(0.5);
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+      // Tapping the already-selected row starts it (start() itself refuses a
+      // locked one, same as ENTER); tapping any other row just selects it.
+      rowText.on('pointerdown', () => {
+        if (this.selected === i) {
+          this.start();
+        } else {
+          this.selected = i;
+          play('block');
+          this.highlight();
+          this.refreshSkinForSelection();
+        }
+      });
       this.rows.push(rowText);
     });
 
@@ -130,10 +152,23 @@ export class MenuScene extends Phaser.Scene {
 
     this.skinText = this.add
       .text(cx, gridBottom + 24, '', { fontFamily: FONT, fontSize: '20px', color: '#ffe27a' })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    this.skinText.on('pointerdown', () => this.swapSkin());
+
+    // A tappable PLAY button, doing what ENTER/SPACE already do.
+    const playY = gridBottom + 58;
+    const playBg = this.add
+      .rectangle(cx, playY, 160, 48, 0xffe27a, 0.18)
+      .setStrokeStyle(2, 0xffe27a, 0.6)
+      .setInteractive({ useHandCursor: true });
+    this.add
+      .text(cx, playY, 'PLAY', { fontFamily: FONT, fontSize: '22px', color: '#ffe27a' })
       .setOrigin(0.5);
+    playBg.on('pointerdown', () => this.start());
 
     this.add
-      .text(cx, gridBottom + 54, '↑ ↓ choose level   ← → mode   ENTER start   S skin   M mute', {
+      .text(cx, gridBottom + 104, '↑ ↓ choose level   ← → mode   ENTER start   S skin   M mute', {
         fontFamily: FONT,
         fontSize: '16px',
         color: '#cfd9e8',
@@ -143,7 +178,7 @@ export class MenuScene extends Phaser.Scene {
     this.add
       .text(
         cx,
-        gridBottom + 90,
+        gridBottom + 140,
         '← → run    ↑ jump    ↓ use power-up    ESC pause\n' +
           'Cloud = double jump    Fireball = throw fire\n' +
           'Star and God Mushroom make you unstoppable for a while',
@@ -164,7 +199,12 @@ export class MenuScene extends Phaser.Scene {
         fontSize: '16px',
         color: '#cfd9e8',
       })
-      .setOrigin(1, 0.5);
+      .setOrigin(1, 0.5)
+      .setInteractive({ useHandCursor: true });
+    this.muteText.on('pointerdown', () => {
+      toggleMute();
+      this.refreshMute();
+    });
     this.refreshMute();
 
     const kb = this.input.keyboard!;

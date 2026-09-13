@@ -3,6 +3,7 @@ import { VIEW, PLAYER } from '../config/game';
 import { POWERUPS, type PowerUpKind } from '../config/powerups';
 import { SKINS, SKINS_CONFIG, type SkinId } from '../config/skins';
 import { availableSkins, loadSave } from '../systems/SaveSystem';
+import { touchEnabled, touchInput } from '../systems/TouchInput';
 
 interface HudData {
   hp: number;
@@ -57,7 +58,27 @@ interface CompleteData {
   tinyGuyUnlocked: boolean;
 }
 
+/** The handful of GameScene methods this UI drives touch/tap input through —
+ * always the same path a keyboard press would take. */
+type GameSceneLike = Phaser.Scene & {
+  requestPause?: () => void;
+  requestResume?: () => void;
+  restartLevel?: () => void;
+  quitToMenu?: () => void;
+  trySwitchSkin?: (id: SkinId) => { ok: boolean; reason?: string };
+};
+
 const FONT = 'monospace';
+
+/** One of the circular on-screen movement/action buttons. */
+interface TouchButton {
+  circle: Phaser.GameObjects.Arc;
+  glyph: Phaser.GameObjects.Text;
+  zone: Phaser.GameObjects.Zone;
+  /** 'always' shows whenever the controls are up; 'attack'/'heal' also need
+   * the current skin to support that action. */
+  kind: 'always' | 'attack' | 'heal';
+}
 
 /**
  * Everything drawn on top of the world. Runs as its own scene so nothing here
@@ -79,6 +100,7 @@ export class UIScene extends Phaser.Scene {
   private modeTagText!: Phaser.GameObjects.Text;
   private powerStackText!: Phaser.GameObjects.Text;
   private pauseCard?: Phaser.GameObjects.Container;
+  private pauseExtras: Phaser.GameObjects.GameObject[] = [];
   private pauseDigitHandler?: (ev: KeyboardEvent) => void;
   private levelId = 1;
   private hud: HudData = {
@@ -102,6 +124,11 @@ export class UIScene extends Phaser.Scene {
   };
   private boss: BossData | null = null;
 
+  /** The on-screen movement/action buttons, only built on a touch device (or
+   * with ?touch=1). Empty otherwise. */
+  private touchButtons: TouchButton[] = [];
+  private touchControlsVisible = false;
+
   constructor() {
     super('UI');
   }
@@ -111,6 +138,15 @@ export class UIScene extends Phaser.Scene {
     // The scene object is reused between levels, so a beaten boss's bar would
     // otherwise follow you into the next level.
     this.boss = null;
+    this.touchButtons = [];
+    this.touchControlsVisible = false;
+    // A restart (Shift+R, or the pause card's own RESTART button) can happen
+    // while this card is showing — it stops and relaunches this whole scene,
+    // so a stale reference here would make the next showPause() think a card
+    // is already up and silently refuse to draw one.
+    this.pauseCard = undefined;
+    this.pauseExtras = [];
+    this.pauseDigitHandler = undefined;
     const panel = this.add.graphics().setDepth(0);
     panel.fillStyle(0x000000, 0.35);
     panel.fillRoundedRect(16, 14, 430, 74, 10);
@@ -143,8 +179,13 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setDepth(2);
 
+    // On a touch device there is no keyboard to name, so the help line is
+    // dropped rather than listing keys a phone does not have.
+    const helpLine = touchEnabled(this.game)
+      ? ''
+      : '← → move   ↑ jump   ↓ use   ESC pause   Shift+R restart';
     this.add
-      .text(VIEW.width - 24, 50, '← → move   ↑ jump   ↓ use   ESC pause   Shift+R restart', {
+      .text(VIEW.width - 24, 50, helpLine, {
         fontFamily: FONT,
         fontSize: '14px',
         color: '#cfd9e8',
@@ -218,6 +259,8 @@ export class UIScene extends Phaser.Scene {
       .setDepth(2)
       .setVisible(false);
 
+    if (touchEnabled(this.game)) this.createTouchControls();
+
     const game = this.scene.get('Game');
     game.events.on('hud', (d: HudData) => {
       this.hud = d;
@@ -250,6 +293,171 @@ export class UIScene extends Phaser.Scene {
     this.redraw();
     // Tell the game we are listening now, so it can send the opening state.
     game.events.emit('ui-ready');
+  }
+
+  // -- Touch controls ---------------------------------------------------------
+
+  /**
+   * The on-screen movement/action buttons. Coordinates are in the 1280x720
+   * game space; sizes and positions are placeholders, nudgeable for looks.
+   * Left/Right/Jump/Down/Pause always show on a touch device; Attack and
+   * Heal only when the current skin can use them (see refreshTouchControlVisibility).
+   */
+  private createTouchControls(): void {
+    const press = (btn: TouchButton) => btn.circle.setFillStyle(0xffffff, 0.6);
+    const release = (btn: TouchButton) => btn.circle.setFillStyle(0xffffff, 0.35);
+    const wireHold = (btn: TouchButton, onDown: () => void, onUp: () => void) => {
+      btn.zone.on('pointerdown', () => {
+        press(btn);
+        onDown();
+      });
+      btn.zone.on('pointerup', () => {
+        release(btn);
+        onUp();
+      });
+      btn.zone.on('pointerout', () => {
+        release(btn);
+        onUp();
+      });
+      btn.zone.on('pointerupoutside', () => {
+        release(btn);
+        onUp();
+      });
+    };
+    const wireTap = (btn: TouchButton, onDown: () => void) => {
+      btn.zone.on('pointerdown', () => {
+        press(btn);
+        onDown();
+      });
+      btn.zone.on('pointerup', () => release(btn));
+      btn.zone.on('pointerout', () => release(btn));
+      btn.zone.on('pointerupoutside', () => release(btn));
+    };
+
+    const left = this.makeCircleButton(110, 610, 62, '◀', 'always');
+    wireHold(
+      left,
+      () => (touchInput.left = true),
+      () => (touchInput.left = false),
+    );
+
+    const right = this.makeCircleButton(260, 610, 62, '▶', 'always');
+    wireHold(
+      right,
+      () => (touchInput.right = true),
+      () => (touchInput.right = false),
+    );
+
+    // Holding jump keeps jumpHeld true (variable jump height); jumpPressed is
+    // the one-shot edge GameScene consumes to actually trigger the jump.
+    const jump = this.makeCircleButton(1170, 590, 72, '⤒', 'always');
+    wireHold(
+      jump,
+      () => {
+        touchInput.jumpHeld = true;
+        touchInput.jumpPressed = true;
+      },
+      () => (touchInput.jumpHeld = false),
+    );
+
+    const down = this.makeCircleButton(1030, 640, 52, '▼', 'always');
+    wireTap(down, () => (touchInput.downPressed = true));
+
+    const attack = this.makeCircleButton(1050, 500, 52, '✦', 'attack');
+    wireTap(attack, () => (touchInput.attackPressed = true));
+
+    const heal = this.makeCircleButton(930, 540, 40, '✚', 'heal');
+    wireTap(heal, () => (touchInput.healPressed = true));
+
+    const pause = this.makeCircleButton(1215, 115, 34, '❚❚', 'always');
+    wireTap(pause, () => (this.scene.get('Game') as GameSceneLike).requestPause?.());
+
+    this.touchButtons = [left, right, jump, down, attack, heal, pause];
+    this.setTouchControlsVisible(true);
+  }
+
+  private makeCircleButton(
+    x: number,
+    y: number,
+    radius: number,
+    glyph: string,
+    kind: TouchButton['kind'],
+  ): TouchButton {
+    const circle = this.add
+      .circle(x, y, radius, 0xffffff, 0.35)
+      .setStrokeStyle(2, 0xffffff, 0.5)
+      .setDepth(80);
+    const glyphText = this.add
+      .text(x, y, glyph, {
+        fontFamily: FONT,
+        fontSize: `${Math.round(radius * 0.85)}px`,
+        color: '#ffffff',
+      })
+      .setOrigin(0.5)
+      .setDepth(81);
+    const zone = this.add
+      .zone(x, y, radius * 2, radius * 2)
+      .setDepth(82)
+      .setInteractive({ useHandCursor: false });
+    return { circle, glyph: glyphText, zone, kind };
+  }
+
+  /** Shows/hides every touch button at once — used while a card (pause,
+   * game over, level clear, hole end) covers the screen. */
+  private setTouchControlsVisible(visible: boolean): void {
+    this.touchControlsVisible = visible;
+    this.refreshTouchControlVisibility();
+  }
+
+  /** Re-applies visibility: on/off for the whole group, further narrowed for
+   * Attack (needs an E attack, or God Tom) and Heal (Nurse only). */
+  private refreshTouchControlVisibility(): void {
+    for (const b of this.touchButtons) {
+      let show = this.touchControlsVisible;
+      if (b.kind === 'attack') {
+        show = show && (this.hud.attackHint !== null || this.hud.skinLabel === 'God Tom');
+      }
+      if (b.kind === 'heal') show = show && this.hud.skinLabel === 'Nurse';
+      b.circle.setVisible(show);
+      b.glyph.setVisible(show);
+      b.zone.setVisible(show);
+      if (b.zone.input) b.zone.input.enabled = show;
+    }
+  }
+
+  /**
+   * A rectangular tappable button for the cards below (pause, level-clear,
+   * game-over, hole end) — min ~64 game px tall per the brief, drawn above
+   * whatever veil that card uses. Returns the pieces so the caller can track
+   * them for cleanup (only the pause card is shown/hidden repeatedly).
+   */
+  private addTapButton(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    label: string,
+    onTap: () => void,
+  ): Phaser.GameObjects.GameObject[] {
+    const bg = this.add
+      .rectangle(x, y, w, h, 0xffffff, 0.12)
+      .setStrokeStyle(2, 0xffffff, 0.55)
+      .setDepth(56);
+    const text = this.add
+      .text(x, y, label, { fontFamily: FONT, fontSize: '22px', color: '#ffffff' })
+      .setOrigin(0.5)
+      .setDepth(57);
+    const zone = this.add
+      .zone(x, y, w, h)
+      .setDepth(58)
+      .setInteractive({ useHandCursor: true });
+    zone.on('pointerdown', () => {
+      bg.setFillStyle(0xffffff, 0.3);
+      onTap();
+    });
+    zone.on('pointerup', () => bg.setFillStyle(0xffffff, 0.12));
+    zone.on('pointerout', () => bg.setFillStyle(0xffffff, 0.12));
+    return [bg, text, zone];
   }
 
   private redraw(): void {
@@ -320,19 +528,24 @@ export class UIScene extends Phaser.Scene {
     } else {
       this.bossText.setVisible(false);
     }
+
+    // Attack/Heal buttons depend on the skin, which can change mid-level.
+    this.refreshTouchControlVisibility();
   }
 
-  /** The pause card. ESC closes it; Q leaves the level. */
+  /** The pause card. ESC closes it; Q leaves the level. Tapping RESUME,
+   * RESTART or QUIT does exactly what those keys do. */
   private showPause(levelName: string, levelId: number): void {
     if (this.pauseCard) return;
     const cx = VIEW.width / 2;
+    this.setTouchControlsVisible(false);
 
     const veil = this.add.graphics();
     veil.fillStyle(0x0a0e18, 0.78);
     veil.fillRect(0, 0, VIEW.width, VIEW.height);
 
     const title = this.add
-      .text(cx, 190, 'PAUSED', {
+      .text(cx, 150, 'PAUSED', {
         fontFamily: FONT,
         fontSize: '58px',
         color: '#ffe27a',
@@ -342,7 +555,7 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const body = this.add
-      .text(cx, 280, `${levelName}\n\nESC — keep playing\nShift+R — restart level\nQ — back to the menu`, {
+      .text(cx, 230, `${levelName}\n\nESC — keep playing\nShift+R — restart level\nQ — back to the menu`, {
         fontFamily: FONT,
         fontSize: '22px',
         color: '#ffffff',
@@ -351,6 +564,20 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const contents: Phaser.GameObjects.GameObject[] = [veil, title, body];
+    const extras: Phaser.GameObjects.GameObject[] = [];
+
+    const gameScene = () => this.scene.get('Game') as GameSceneLike;
+    const doQuit = () => {
+      this.hidePause();
+      gameScene().quitToMenu?.();
+    };
+
+    extras.push(
+      ...this.addTapButton(cx - 220, 390, 190, 60, 'RESUME', () => gameScene().requestResume?.()),
+      ...this.addTapButton(cx, 390, 190, 60, 'RESTART', () => gameScene().restartLevel?.()),
+      ...this.addTapButton(cx + 220, 390, 190, 60, 'QUIT', doQuit),
+    );
+
     let skinList: SkinId[] = [];
     let switchMsg: Phaser.GameObjects.Text | undefined;
 
@@ -359,11 +586,8 @@ export class UIScene extends Phaser.Scene {
     if (SKINS_CONFIG.switchMidLevel) {
       const save = loadSave();
       skinList = availableSkins(save, levelId);
-      const lines = skinList
-        .map((id, i) => `${i + 1} — ${SKINS[id].label}${id === save.skin ? ' (current)' : ''}`)
-        .join('\n');
-      const listTop = 430;
-      const lineHeight = 20;
+      const listTop = 460;
+      const lineHeight = 24;
       const switchTitle = this.add
         .text(cx, listTop, 'Switch skin:', {
           fontFamily: FONT,
@@ -371,15 +595,33 @@ export class UIScene extends Phaser.Scene {
           color: '#9fd8f0',
         })
         .setOrigin(0.5);
-      const switchList = this.add
-        .text(cx, listTop + 26, lines, {
-          fontFamily: FONT,
-          fontSize: '17px',
-          color: '#cfd9e8',
-          align: 'center',
-          lineSpacing: 4,
-        })
-        .setOrigin(0.5, 0);
+      contents.push(switchTitle);
+
+      const trySwitch = (skinId: SkinId) => {
+        const result = gameScene().trySwitchSkin?.(skinId);
+        if (!result) return;
+        switchMsg?.setText(
+          result.ok ? `Now wearing ${SKINS[skinId].label}.` : (result.reason ?? "Can't switch."),
+        );
+      };
+
+      // Each row is its own tappable Text, so a tap and its matching number
+      // key both land on trySwitchSkin the same way.
+      skinList.forEach((id, i) => {
+        const label = `${i + 1} — ${SKINS[id].label}${id === save.skin ? ' (current)' : ''}`;
+        const row = this.add
+          .text(cx, listTop + 26 + i * lineHeight, label, {
+            fontFamily: FONT,
+            fontSize: '17px',
+            color: '#cfd9e8',
+          })
+          .setOrigin(0.5)
+          .setDepth(56)
+          .setInteractive({ useHandCursor: true });
+        row.on('pointerdown', () => trySwitch(id));
+        extras.push(row);
+      });
+
       switchMsg = this.add
         .text(cx, listTop + 26 + skinList.length * lineHeight + 20, '', {
           fontFamily: FONT,
@@ -387,42 +629,35 @@ export class UIScene extends Phaser.Scene {
           color: '#ffe27a',
         })
         .setOrigin(0.5);
-      contents.push(switchTitle, switchList, switchMsg);
-    }
+      contents.push(switchMsg);
 
-    this.pauseCard = this.add.container(0, 0, contents).setDepth(55);
-
-    const kb = this.input.keyboard!;
-    kb.once('keydown-Q', () => {
-      const game = this.scene.get('Game') as Phaser.Scene & { quitToMenu?: () => void };
-      this.hidePause();
-      game.quitToMenu?.();
-    });
-
-    if (SKINS_CONFIG.switchMidLevel) {
       const handler = (ev: KeyboardEvent) => {
         const n = Number(ev.key);
         if (!Number.isInteger(n) || n < 1 || n > skinList.length) return;
-        const game = this.scene.get('Game') as Phaser.Scene & {
-          trySwitchSkin?: (id: SkinId) => { ok: boolean; reason?: string };
-        };
-        const result = game.trySwitchSkin?.(skinList[n - 1]);
-        if (!result) return;
-        switchMsg?.setText(result.ok ? `Now wearing ${SKINS[skinList[n - 1]].label}.` : (result.reason ?? "Can't switch."));
+        trySwitch(skinList[n - 1]);
       };
       this.pauseDigitHandler = handler;
-      kb.on('keydown', handler);
+      this.input.keyboard!.on('keydown', handler);
     }
+
+    this.pauseCard = this.add.container(0, 0, contents).setDepth(55);
+    this.pauseExtras = extras;
+
+    const kb = this.input.keyboard!;
+    kb.once('keydown-Q', doQuit);
   }
 
   private hidePause(): void {
     this.pauseCard?.destroy(true);
     this.pauseCard = undefined;
+    for (const obj of this.pauseExtras) obj.destroy();
+    this.pauseExtras = [];
     this.input.keyboard?.off('keydown-Q');
     if (this.pauseDigitHandler) {
       this.input.keyboard?.off('keydown', this.pauseDigitHandler);
       this.pauseDigitHandler = undefined;
     }
+    this.setTouchControlsVisible(true);
   }
 
   /**
@@ -430,6 +665,7 @@ export class UIScene extends Phaser.Scene {
    * never have to guess whether their progress survived.
    */
   private showGameOver(d: GameOverData): void {
+    this.setTouchControlsVisible(false);
     const cx = VIEW.width / 2;
     const veil = this.add.graphics().setDepth(50);
     veil.fillStyle(0x180a12, 0.88);
@@ -461,7 +697,7 @@ export class UIScene extends Phaser.Scene {
       .setDepth(51);
 
     this.add
-      .text(cx, 520, 'SPACE — try again      ESC — menu', {
+      .text(cx, 500, 'SPACE — try again      ESC — menu', {
         fontFamily: FONT,
         fontSize: '20px',
         color: '#9fd8f0',
@@ -471,21 +707,28 @@ export class UIScene extends Phaser.Scene {
 
     const kb = this.input.keyboard!;
     const game = this.scene.get('Game');
-    kb.once('keydown-SPACE', () => {
+    const tryAgain = () => {
       this.scene.stop();
       game.scene.start('Game', { levelId: this.levelId });
-    });
-    kb.once('keydown-ESC', () => {
+    };
+    const toMenu = () => {
       this.scene.stop();
       game.scene.start('Menu');
-    });
+    };
+    kb.once('keydown-SPACE', tryAgain);
+    kb.once('keydown-ESC', toMenu);
+
+    this.addTapButton(cx - 140, 590, 240, 60, 'TRY AGAIN', tryAgain);
+    this.addTapButton(cx + 140, 590, 240, 60, 'MENU', toMenu);
   }
 
   /**
    * The Moo Moo Hole ends here, win or lose. No coins, no best score, no
-   * merchant — just a small card, then straight back to the level.
+   * merchant — just a small card, then straight back to the level. A tap on
+   * CONTINUE does the same thing as waiting the card out.
    */
   private showHoleEnd(won: boolean, originLevelId: number): void {
+    this.setTouchControlsVisible(false);
     const cx = VIEW.width / 2;
     const veil = this.add.graphics().setDepth(50);
     veil.fillStyle(0x0a0e18, 0.8);
@@ -512,13 +755,19 @@ export class UIScene extends Phaser.Scene {
       .setDepth(51);
 
     const game = this.scene.get('Game');
-    this.time.delayedCall(1600, () => {
+    let left = false;
+    const goOn = () => {
+      if (left) return;
+      left = true;
       this.scene.stop();
       game.scene.start('Game', won ? { levelId: originLevelId, spawnNearGoal: true } : { levelId: originLevelId });
-    });
+    };
+    this.time.delayedCall(1600, goOn);
+    this.addTapButton(cx, 460, 240, 64, 'CONTINUE', goOn);
   }
 
   private showComplete(d: CompleteData): void {
+    this.setTouchControlsVisible(false);
     const cx = VIEW.width / 2;
     const veil = this.add.graphics().setDepth(50);
     veil.fillStyle(0x0a0e18, 0.82);
@@ -640,5 +889,14 @@ export class UIScene extends Phaser.Scene {
       d.nextLevelId ? leave('Game', { levelId: d.nextLevelId }) : leave('Menu'),
     );
     kb.once('keydown-ESC', () => leave('Menu'));
+
+    // Kept away from the merchant art (which sits to the right, x > 800) —
+    // placeholder positions, nudgeable.
+    if (d.nextLevelId) {
+      this.addTapButton(320, 620, 220, 56, 'NEXT LEVEL', () => leave('Game', { levelId: d.nextLevelId }));
+      this.addTapButton(560, 620, 220, 56, 'MENU', () => leave('Menu'));
+    } else {
+      this.addTapButton(440, 620, 220, 56, 'MENU', () => leave('Menu'));
+    }
   }
 }
