@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { PLAYER, PHYSICS, STATUS, CLOUD, FIREBALL, STAR, MUSHROOM } from '../config/game';
 import type { PowerUpKind } from '../config/powerups';
+import { BOUGHT_FORM_MS } from '../config/shop';
 
 export type StatusKind = 'slow' | 'freeze' | 'stuck';
 
@@ -25,7 +26,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   skin: SkinId = 'tom';
   /** Active transformation, if any. Always cleared when a level starts. */
   form: Form = 'none';
+  /** A Star or Mushroom bought in the shop. It lasts the whole level. */
+  boughtForm: Exclude<Form, 'none'> | null = null;
   private formUntil = 0;
+  private formTotal = 0;
   private formAura?: Phaser.GameObjects.Image;
 
   private airJumpsLeft = 0;
@@ -234,9 +238,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
    * Start a transformation. It replaces any transformation already running
    * rather than stacking, and leaves the held power-up untouched.
    */
-  transform(form: Exclude<Form, 'none'>): void {
+  transform(form: Exclude<Form, 'none'>, durationMs?: number): void {
     this.form = form;
-    this.formUntil = this.scene.time.now + (form === 'star' ? STAR.durationMs : MUSHROOM.durationMs);
+    this.formTotal = durationMs ?? (form === 'star' ? STAR.durationMs : MUSHROOM.durationMs);
+    this.formUntil = this.scene.time.now + this.formTotal;
     this.airJumpsLeft = Math.max(this.airJumpsLeft, this.airJumpAllowance);
     // A transformation clears whatever was slowing or holding you.
     this.slowUntil = 0;
@@ -262,6 +267,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   clearForm(): void {
     this.form = 'none';
     this.formUntil = 0;
+    this.formTotal = 0;
     this.formAura?.destroy();
     this.formAura = undefined;
     this.clearTint();
@@ -271,6 +277,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   /** How much longer the current transformation runs, in ms. */
   get formRemainingMs(): number {
     return Math.max(0, this.formUntil - this.scene.time.now);
+  }
+
+  /** How long the current transformation was set to run, in ms. */
+  get formTotalMs(): number {
+    return this.formTotal;
   }
 
   heal(amount: number): void {
@@ -327,6 +338,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.invulnUntil = this.scene.time.now + PLAYER.respawnInvulnMs;
     this.airJumpsLeft = this.airJumpAllowance;
     this.jumpCutUsed = true;
+    if (this.boughtForm) this.transform(this.boughtForm, BOUGHT_FORM_MS);
   }
 
   // -- Presentation ---------------------------------------------------------
@@ -364,6 +376,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.form !== 'none') {
       if (time >= this.formUntil) {
         this.clearForm();
+        // A bought form takes over the moment a picked-up one runs out. This
+        // runs before physics, so no hit can land in between.
+        if (this.boughtForm) this.transform(this.boughtForm, BOUGHT_FORM_MS);
       } else {
         // Stars flash through the rainbow; the mushroom just glows.
         if (this.form === 'star') {

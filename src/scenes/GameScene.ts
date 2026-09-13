@@ -7,9 +7,11 @@ import {
   VIEW,
   LIVES,
   SAFE_GROUND_SAMPLE_MS,
+  COIN_REWARD,
 } from '../config/game';
 import { DEATH_Y, getLevel, LEVELS, type LevelDef, type PlatformDef } from '../config/levels';
 import { HEART_HEAL, POWERUPS, type PowerUpKind } from '../config/powerups';
+import { BOUGHT_FORM_MS } from '../config/shop';
 
 import { Player } from '../entities/Player';
 import { Projectile, type ProjectileOptions } from '../entities/Projectile';
@@ -132,11 +134,17 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     // Player, and where they come back after a fall.
     this.respawnPoint = { ...level.playerStart };
     this.safeGround = { ...level.playerStart };
-    this.player = new Player(this, level.playerStart.x, level.playerStart.y, loadSave().skin);
-    // Transformations never survive a level change; only the starting held
-    // power-up carries in, and that comes from level data.
+    const save = loadSave();
+    this.player = new Player(this, level.playerStart.x, level.playerStart.y, save.skin);
+    // Transformations never survive a level change on their own. What carries
+    // in is the level's starting power-up (or one bought in the shop, which
+    // takes its place) and any Star or Mushroom bought to last whole levels.
     this.player.clearForm();
-    if (level.startingPowerUp) this.player.give(level.startingPowerUp);
+    const held = save.nextHeld ?? level.startingPowerUp;
+    if (held) this.player.give(held);
+    this.player.boughtForm =
+      save.mushroomLevels > 0 ? 'mushroom' : save.starLevels > 0 ? 'star' : null;
+    if (this.player.boughtForm) this.player.transform(this.player.boughtForm, BOUGHT_FORM_MS);
 
     for (const cp of level.checkpoints) this.checkpoints.push(new Checkpoint(this, cp.x, cp.y));
     if (level.goal) this.goal = new GoalFlag(this, level.goal.x, level.goal.y);
@@ -415,21 +423,39 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (contents === 'coin') {
       this.coinsTaken += 1;
       this.score += SCORE.coin;
-      const pop = this.add.image(block.x, block.y - 20, 'pw-coin').setDepth(30);
-      this.tweens.add({
-        targets: pop,
-        y: block.y - 90,
-        alpha: 0,
-        duration: 420,
-        onComplete: () => pop.destroy(),
-      });
-      play('coin');
+      this.popCoins(block.x, block.y, 1);
       this.emitHud();
       return;
     }
 
     const pickup = new PowerUpPickup(this, block.x, block.y - 10, contents);
     this.pickups.add(pickup);
+
+    // Henry's rule: a power-up block has an even chance of coins as well.
+    // First bump only. Arena blocks refill, and a roll on every refill would
+    // turn a boss fight into a coin farm.
+    if (block.bumpCount === 1 && Math.random() < COIN_REWARD.blockBonusChance) {
+      this.coinsTaken += COIN_REWARD.blockBonus;
+      this.score += SCORE.coin * COIN_REWARD.blockBonus;
+      this.popCoins(block.x, block.y, COIN_REWARD.blockBonus);
+      this.emitHud();
+    }
+  }
+
+  /** Coins that jump out of a block and vanish, fanned out so each one reads. */
+  private popCoins(x: number, y: number, count: number): void {
+    for (let i = 0; i < count; i++) {
+      const pop = this.add.image(x + (i - (count - 1) / 2) * 26, y - 20, 'pw-coin').setDepth(30);
+      this.tweens.add({
+        targets: pop,
+        y: y - 90,
+        alpha: 0,
+        delay: i * 60,
+        duration: 420,
+        onComplete: () => pop.destroy(),
+      });
+    }
+    play('coin');
   }
 
   private onPlayerTouchEnemy(enemy: Enemy): void {
@@ -543,6 +569,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   private killEnemy(enemy: Enemy, points: number): void {
     enemy.die();
     this.score += points;
+    this.coinsTaken += COIN_REWARD.enemyKill;
     this.emitHud();
   }
 
@@ -727,6 +754,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
     const bonus = this.player.hp * SCORE.hpBonusPerPoint;
     this.score += (wasBoss ? SCORE.bossClear : SCORE.levelClear) + bonus;
+    if (wasBoss) this.coinsTaken += COIN_REWARD.boss;
     play('win');
 
     const save = recordLevelClear(this.level.id, this.score, this.coinsTaken);
@@ -743,6 +771,8 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       bonus,
       levelName: this.level.name,
       nextLevelId: hasNext ? this.level.id + 1 : null,
+      isBoss: wasBoss,
+      totalCoins: save.totalCoins,
     });
   }
 
@@ -780,8 +810,11 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       deaths: this.deaths,
       lives: this.livesLeft,
       form: this.player.form,
-      formLabel: this.player.form === 'star' ? POWERUPS.star.label : POWERUPS.mushroom.label,
+      formLabel:
+        (this.player.form === 'star' ? POWERUPS.star.label : POWERUPS.mushroom.label) +
+        (this.player.formTotalMs === BOUGHT_FORM_MS ? ' — whole level' : ''),
       formMs: this.player.formRemainingMs,
+      formTotalMs: this.player.formTotalMs,
     });
     if (this.boss && this.bossAwake) {
       this.events.emit('boss', {

@@ -18,6 +18,7 @@ export class BootScene extends Phaser.Scene {
     this.makeButterfly();
     this.makeBoss();
     this.makeRaider();
+    this.makeMerchant();
     this.makeProjectiles();
     this.makePowerUps();
     this.makeBlocks();
@@ -438,6 +439,79 @@ export class BootScene extends Phaser.Scene {
       g.fillTriangle(11, 100, 17, 99, 15, 168);
       g.fillStyle(0xffe27a, 1);
       g.fillRoundedRect(4, 88, 22, 8, 3);
+    });
+  }
+
+  // -- Shopkeepers ----------------------------------------------------------
+
+  /** Boo Mommy Bag: a big friendly handbag of a lady with an enormous nose. */
+  private makeMerchant(): void {
+    this.tex('merchant-boo', 160, 210, (g) => {
+      // Handle
+      g.lineStyle(10, 0x7a3f8f, 1);
+      g.beginPath();
+      g.arc(80, 60, 44, Math.PI, 0);
+      g.strokePath();
+      // Bag body
+      g.fillStyle(0xb05ac8, 1);
+      g.fillRoundedRect(10, 56, 140, 130, 24);
+      g.fillStyle(0x9446ad, 1);
+      g.fillRoundedRect(10, 150, 140, 36, 18);
+      // Clasp
+      g.fillStyle(0xffd76b, 1);
+      g.fillRoundedRect(68, 56, 24, 14, 4);
+      // Eyes, with lashes
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(50, 94, 13);
+      g.fillCircle(110, 94, 13);
+      g.fillStyle(0x2a1a30, 1);
+      g.fillCircle(52, 96, 6);
+      g.fillCircle(108, 96, 6);
+      g.lineStyle(3, 0x2a1a30, 1);
+      for (const ex of [50, 110]) {
+        g.lineBetween(ex - 10, 80, ex - 14, 74);
+        g.lineBetween(ex, 80, ex, 72);
+        g.lineBetween(ex + 10, 80, ex + 14, 74);
+      }
+      // The giant nose
+      g.fillStyle(0xf2a0b8, 1);
+      g.fillEllipse(80, 124, 66, 52);
+      g.fillStyle(0xd9728f, 1);
+      g.fillCircle(66, 136, 6);
+      g.fillCircle(94, 136, 6);
+      // Smile
+      g.lineStyle(4, 0x5a1f6b, 1);
+      g.beginPath();
+      g.arc(80, 156, 20, 0.3, Math.PI - 0.3);
+      g.strokePath();
+      // Feet
+      g.fillStyle(0x5a1f6b, 1);
+      g.fillRoundedRect(36, 186, 30, 22, 8);
+      g.fillRoundedRect(94, 186, 30, 22, 8);
+    });
+
+    // One of her llamas. Faces left; flip it for the other side.
+    this.tex('llama', 84, 104, (g) => {
+      const wool = 0xf3e6cf;
+      const shade = 0xdcc9a8;
+      // Legs
+      g.fillStyle(shade, 1);
+      for (const lx of [16, 30, 52, 66]) g.fillRect(lx, 74, 8, 30);
+      // Body, neck and head
+      g.fillStyle(wool, 1);
+      g.fillEllipse(44, 66, 70, 36);
+      g.fillRect(8, 20, 18, 50);
+      g.fillEllipse(14, 18, 26, 18);
+      // Ears
+      g.fillTriangle(8, 12, 12, 0, 16, 12);
+      g.fillTriangle(18, 12, 22, 1, 26, 12);
+      // Tail
+      g.fillCircle(78, 58, 6);
+      // Eye and snout
+      g.fillStyle(0x2a1a18, 1);
+      g.fillCircle(11, 16, 2.4);
+      g.fillStyle(shade, 1);
+      g.fillEllipse(5, 22, 10, 8);
     });
   }
 

@@ -107,4 +107,13 @@ export const SCORE = {
   hpBonusPerPoint: 5,
 } as const;
 
+/** Coins, which Boo Mommy Bag's shop spends. Henry's numbers. */
+export const COIN_REWARD = {
+  enemyKill: 2,
+  boss: 300,
+  /** A power-up block has this chance of popping coins as well as its power-up. */
+  blockBonusChance: 0.5,
+  blockBonus: 4,
+} as const;
+
 export const SAVE_KEY = 'henrys-jump-quest-save';

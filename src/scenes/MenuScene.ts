@@ -124,7 +124,9 @@ export class MenuScene extends Phaser.Scene {
     this.oneUpText = this.add
       .text(20, VIEW.height - 28, '', { fontFamily: FONT, fontSize: '16px', color: '#7ee6a0' })
       .setOrigin(0, 0.5);
-    this.oneUpText.setText(save.oneUps > 0 ? `1-UPs banked: ${save.oneUps}` : '');
+    const bank = [`Coins: ${save.totalCoins}`];
+    if (save.oneUps > 0) bank.push(`1-UPs banked: ${save.oneUps}`);
+    this.oneUpText.setText(bank.join('    '));
 
     this.muteText = this.add
       .text(VIEW.width - 20, VIEW.height - 28, '', {

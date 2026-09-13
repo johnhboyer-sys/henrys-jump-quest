@@ -51,7 +51,22 @@ and a banked 1-UP is spent automatically to save the run first.
 - **1-UP** — an extra life. Only ever found in boss arenas.
 
 Star and Mushroom fire the moment you touch them, and **never carry into the
-next level** — every level starts you plain.
+next level** — every level starts you plain, unless you bought one in the shop.
+
+**Coins and the shop** — coins come from the level, from ? blocks (a power-up
+block has a 50% chance of 4 coins as well as its power-up), 2 for every enemy
+you kill and 300 for beating a boss. They go in the bank when you finish a
+level. After every normal level **Boo Mommy Bag** turns up on the level-clear
+card with her two llamas. Click her to shop:
+
+| Item | Price | What you get |
+| --- | --- | --- |
+| Fireball | 50 | start the next level holding 12 fireballs |
+| Cloud | 50 | start the next level holding the cloud |
+| Super Star | 100 | the star for the whole of your next 3 levels |
+| God Mushroom | 1000 | the God Mushroom for the whole of your next level |
+
+A bought Star or Mushroom comes back if you fall down a pit.
 
 **Enemies**
 
@@ -112,6 +127,16 @@ The brainstorm deliberately left a lot unspecified. What I chose, and why:
   they described needs it.
 - **A single power-up slot.** Picking one up replaces the last. Keeps the HUD to
   one line and ↓ to one meaning.
+- **The block coin roll pays only on a block's first bump.** Boss-arena blocks
+  refill every nine seconds, and a roll on every refill made the arena a coin
+  farm.
+- **Bought Stars and Mushrooms count down when you finish a level**, not when
+  you start one, so quitting never wastes one.
+- **One bought transformation at a time.** A Star and a Mushroom cannot both
+  run, so the shop will not sell the second while the first has levels left.
+- **Nothing is sold twice.** Anything already waiting for you is greyed out,
+  and so is a second Fireball or Cloud — there is one held slot, and the new
+  one would quietly push out the one you paid for.
 - **Boss damage is capped** at 10% of its max HP per hit, so no single trick ends
   the fight early.
 - **Freezes are short** (0.9s) and never happen in mid-air. Being frozen over a
@@ -157,8 +182,9 @@ src/
   systems/    Backdrop, SaveSystem, SoundSystem
 ```
 
-Progress (unlocked levels, levels cleared, best scores, banked 1-UPs and your
-chosen skin) is saved to `localStorage`.
+Progress (unlocked levels, levels cleared, best scores, banked 1-UPs, your
+chosen skin, your coins and anything bought in the shop) is saved to
+`localStorage`.
 
 ## The mid-level reset bug
 

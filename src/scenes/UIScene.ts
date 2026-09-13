@@ -14,6 +14,7 @@ interface HudData {
   form: 'none' | 'star' | 'mushroom';
   formLabel: string;
   formMs: number;
+  formTotalMs: number;
 }
 
 interface BossData {
@@ -36,6 +37,9 @@ interface CompleteData {
   bonus: number;
   levelName: string;
   nextLevelId: number | null;
+  isBoss: boolean;
+  /** The coin bank after this level's coins went in. */
+  totalCoins: number;
 }
 
 const FONT = 'monospace';
@@ -70,6 +74,7 @@ export class UIScene extends Phaser.Scene {
     form: 'none',
     formLabel: '',
     formMs: 0,
+    formTotalMs: 0,
   };
   private boss: BossData | null = null;
 
@@ -213,7 +218,7 @@ export class UIScene extends Phaser.Scene {
     // Transformation countdown.
     this.formBar.clear();
     if (this.hud.form !== 'none' && this.hud.formMs > 0) {
-      const total = this.hud.form === 'star' ? 9000 : 12000;
+      const total = this.hud.formTotalMs || 1;
       const frac = Phaser.Math.Clamp(this.hud.formMs / total, 0, 1);
       this.formBar.fillStyle(0x000000, 0.4);
       this.formBar.fillRoundedRect(456, 92, 198, 24, 6);
@@ -351,7 +356,8 @@ export class UIScene extends Phaser.Scene {
       `${d.levelName} complete!`,
       '',
       `Score      ${d.score}`,
-      `Coins      ${d.coins}`,
+      `Coins earned  ${d.coins}`,
+      `Coin bank     ${d.totalCoins}`,
       `Health bonus  ${d.bonus}`,
       `Deaths     ${d.deaths}`,
     ].join('\n');
@@ -386,17 +392,42 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(51);
 
+    // The card can be left three ways: SPACE, ESC, or clicking Boo. Only the
+    // first counts, or two scene changes queue up and both scenes end up running.
+    let leaving = false;
+    const leave = (key: string, data?: object) => {
+      if (leaving) return;
+      leaving = true;
+      const game = this.scene.get('Game');
+      this.scene.stop();
+      game.scene.start(key, data);
+    };
+
+    // Boo Mommy Bag sets up shop after every normal level. Click her to buy.
+    if (!d.isBoss) {
+      this.add.image(985, 680, 'llama').setOrigin(0.5, 1).setDepth(51);
+      this.add.image(1225, 680, 'llama').setOrigin(0.5, 1).setDepth(51).setFlipX(true);
+      const boo = this.add
+        .image(1110, 690, 'merchant-boo')
+        .setOrigin(0.5, 1)
+        .setDepth(52)
+        .setInteractive({ useHandCursor: true });
+      this.add
+        .text(1110, 440, 'Click Boo Mommy Bag\nto go shopping!', {
+          fontFamily: FONT,
+          fontSize: '18px',
+          color: '#ffd76b',
+          align: 'center',
+        })
+        .setOrigin(0.5)
+        .setDepth(51);
+      boo.on('pointerdown', () => leave('Shop', { nextLevelId: d.nextLevelId }));
+    }
+
     const kb = this.input.keyboard!;
-    kb.once('keydown-SPACE', () => {
-      const game = this.scene.get('Game');
-      this.scene.stop();
-      if (d.nextLevelId) game.scene.start('Game', { levelId: d.nextLevelId });
-      else game.scene.start('Menu');
-    });
-    kb.once('keydown-ESC', () => {
-      const game = this.scene.get('Game');
-      this.scene.stop();
-      game.scene.start('Menu');
-    });
+    kb.once('keydown-SPACE', () =>
+      d.nextLevelId ? leave('Game', { levelId: d.nextLevelId }) : leave('Menu'),
+    );
+    kb.once('keydown-ESC', () => leave('Menu'));
   }
 }

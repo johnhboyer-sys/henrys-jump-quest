@@ -1,4 +1,5 @@
 import { SAVE_KEY, LIVES } from '../config/game';
+import { BOUGHT_FORM_LEVELS, type ShopItem } from '../config/shop';
 import type { SkinId } from '../entities/Player';
 
 export interface SaveData {
@@ -11,6 +12,11 @@ export interface SaveData {
   /** One-ups banked from boss arenas, carried between attempts. */
   oneUps: number;
   skin: SkinId;
+  /** A Fireball or Cloud bought in the shop, handed over when the next level starts. */
+  nextHeld: 'fireball' | 'cloud' | null;
+  /** Levels left on a bought Super Star / God Mushroom. Count down on each clear. */
+  starLevels: number;
+  mushroomLevels: number;
 }
 
 const EMPTY: SaveData = {
@@ -20,6 +26,9 @@ const EMPTY: SaveData = {
   totalCoins: 0,
   oneUps: 0,
   skin: 'tom',
+  nextHeld: null,
+  starLevels: 0,
+  mushroomLevels: 0,
 };
 
 function blank(): SaveData {
@@ -40,6 +49,9 @@ export function loadSave(): SaveData {
       totalCoins: p.totalCoins ?? 0,
       oneUps: Math.min(p.oneUps ?? 0, LIVES.maxBanked),
       skin: p.skin === 'henry' ? 'henry' : 'tom',
+      nextHeld: p.nextHeld === 'fireball' || p.nextHeld === 'cloud' ? p.nextHeld : null,
+      starLevels: Math.max(0, p.starLevels ?? 0),
+      mushroomLevels: Math.max(0, p.mushroomLevels ?? 0),
     };
   } catch {
     // A corrupt or blocked localStorage must never stop the game starting.
@@ -61,6 +73,38 @@ export function recordLevelClear(levelId: number, score: number, coins: number):
   save.unlockedLevel = Math.max(save.unlockedLevel, levelId + 1);
   save.bestScores[levelId] = Math.max(save.bestScores[levelId] ?? 0, score);
   save.totalCoins += coins;
+  // Shop buys are used up by finishing a level, never by quitting one.
+  save.nextHeld = null;
+  save.starLevels = Math.max(0, save.starLevels - 1);
+  save.mushroomLevels = Math.max(0, save.mushroomLevels - 1);
+  writeSave(save);
+  return save;
+}
+
+/** Why an item cannot be bought right now, or null if it can. */
+export function blockedReason(save: SaveData, item: ShopItem): string | null {
+  // A Star and a Mushroom cannot both run, so only one is ever bought at a time.
+  if (item.id === 'star' && save.mushroomLevels > 0) return 'Your God Mushroom is still going!';
+  if (item.id === 'mushroom' && save.starLevels > 0) return 'Your Super Star is still going!';
+  // Nothing is sold twice: a second click would only waste coins.
+  if (item.id === 'star' && save.starLevels > 0) return 'You already have the Super Star!';
+  if (item.id === 'mushroom' && save.mushroomLevels > 0) return 'You already have the God Mushroom!';
+  // One held slot, so a second Fireball or Cloud would push the first one out.
+  if ((item.id === 'fireball' || item.id === 'cloud') && save.nextHeld) {
+    return `You already have a ${save.nextHeld === 'fireball' ? 'Fireball' : 'Cloud'} waiting!`;
+  }
+  if (save.totalCoins < item.price) return 'Not enough coins!';
+  return null;
+}
+
+/** Spend coins on a shop item. Returns the new save, or null if it could not be bought. */
+export function buyItem(item: ShopItem): SaveData | null {
+  const save = loadSave();
+  if (blockedReason(save, item)) return null;
+  save.totalCoins -= item.price;
+  if (item.id === 'star') save.starLevels = BOUGHT_FORM_LEVELS.star;
+  else if (item.id === 'mushroom') save.mushroomLevels = BOUGHT_FORM_LEVELS.mushroom;
+  else save.nextHeld = item.id;
   writeSave(save);
   return save;
 }

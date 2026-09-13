@@ -8,6 +8,7 @@ import type { PowerUpKind } from '../config/powerups';
 export class QuestionBlock extends Phaser.Physics.Arcade.Sprite {
   readonly contains: PowerUpKind;
   private spent = false;
+  private bumps = 0;
   private readonly homeY: number;
   private readonly refillMs?: number;
 
@@ -31,10 +32,16 @@ export class QuestionBlock extends Phaser.Physics.Arcade.Sprite {
     return this.spent;
   }
 
+  /** How many times it has paid out. Refilling blocks go past 1. */
+  get bumpCount(): number {
+    return this.bumps;
+  }
+
   /** Returns what popped out, or null if the block was already empty. */
   bump(): PowerUpKind | null {
     if (this.spent) return null;
     this.spent = true;
+    this.bumps += 1;
     this.setTexture('block-used');
 
     // The classic nudge upwards.
