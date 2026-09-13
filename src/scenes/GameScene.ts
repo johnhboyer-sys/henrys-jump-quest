@@ -9,7 +9,7 @@ import {
   SAFE_GROUND_SAMPLE_MS,
   COIN_REWARD,
 } from '../config/game';
-import { DEATH_Y, getLevel, LEVELS, type LevelDef, type PlatformDef } from '../config/levels';
+import { DEATH_Y, FLOOR_Y, getLevel, LEVELS, type LevelDef, type PlatformDef } from '../config/levels';
 import { HEART_HEAL, POWERUPS, type PowerUpKind } from '../config/powerups';
 import { BOUGHT_FORM_MS } from '../config/shop';
 
@@ -191,6 +191,33 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       const refill = level.boss && b.x > level.boss.x - 900 ? 9000 : undefined;
       const block = new QuestionBlock(this, b.x, b.y, b.contains, refill);
       this.blocks.add(block);
+    }
+
+    // Tiny tunnels: a solid wall from the world's ceiling down to a 44px slot
+    // above the floor. Tom (58 tall) cannot fit through; Tiny Guy (36 tall)
+    // can. The wall uses the same addPlatform path as everything else.
+    const tunnelSlotHeight = 44; // placeholder: not Henry's number
+    for (const t of level.tunnels ?? []) {
+      this.addPlatform({
+        x: t.x,
+        y: -400,
+        w: t.w,
+        h: FLOOR_Y - tunnelSlotHeight + 400,
+        kind: 'platform',
+      });
+
+      // A sign just before the entrance, at roughly the player's eye height.
+      this.add
+        .text(t.x - 60, FLOOR_Y - 90, 'TINY GUY\nONLY\n   ↓', {
+          fontFamily: 'monospace',
+          fontSize: '18px',
+          color: '#ffffff',
+          stroke: '#000000',
+          strokeThickness: 4,
+          align: 'center',
+        })
+        .setOrigin(0.5, 1)
+        .setDepth(15);
     }
   }
 
@@ -387,10 +414,14 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   }
 
   /**
-   * Drops a galactic minion into the fight. It arrives from above with a
-   * warning flash, so it can never land on the player unannounced.
+   * Drops a minion into the fight. It arrives from above with a warning
+   * flash, so it can never land on the player unannounced. `galactic`
+   * defaults to true, so the Galactic Raider's summons are unchanged; a boss
+   * that wants an ordinary-strength minion passes `galactic: false`. `owner`
+   * tags the minion so a boss can later count or clear its own summons.
    */
-  spawnMinion(kind: EnemyKind, x: number): void {
+  spawnMinion(kind: EnemyKind, x: number, opts?: { galactic?: boolean; owner?: object }): void {
+    const galactic = opts?.galactic ?? true;
     const clampedX = Phaser.Math.Clamp(x, 80, this.level.worldWidth - 80);
     const alive = this.enemies.getChildren().filter((e) => e.active).length;
     if (alive >= 8) return;
@@ -406,14 +437,26 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     });
 
     this.time.delayedCall(420, () => {
+      // The owner (a boss) may have died while this one was still in the air.
+      // Every boss is a Phaser game object, so `active` going false on death
+      // is enough to catch it — and it keeps "all its minions vanish" true.
+      if (opts?.owner && (opts.owner as { active?: boolean }).active === false) return;
       const minion = createEnemy(
         this,
         { kind, x: clampedX, y: 200, left: clampedX - 260, right: clampedX + 260 },
-        true,
+        galactic,
       ).attach(this);
+      minion.owner = opts?.owner;
       this.enemies.add(minion);
       play('block');
     });
+  }
+
+  /** How many live minions were spawned with this owner. */
+  countMinionsFor(owner: object): number {
+    return this.enemies
+      .getChildren()
+      .filter((e) => e.active && (e as Enemy).owner === owner).length;
   }
 
   // -- Collision handlers ---------------------------------------------------
@@ -879,8 +922,29 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   private defeatBoss(): void {
     if (!this.boss) return;
     this.finished = true;
+    if (this.boss.def.clearMinionsOnDeath) this.clearBossMinions(this.boss);
     this.events.emit('boss', { hp: 0, maxHp: this.boss.maxHp, name: this.boss.def.name });
     this.boss.defeat(() => this.completeLevel(true));
+  }
+
+  /** Pops every live minion this boss spawned, each with a small puff. */
+  private clearBossMinions(boss: BossBase): void {
+    for (const obj of this.enemies.getChildren()) {
+      const enemy = obj as Enemy;
+      if (!enemy.active || enemy.owner !== boss) continue;
+      const puff = this.add
+        .image(enemy.x, enemy.y - enemy.def.bodyHeight / 2, 'puff')
+        .setDepth(19)
+        .setScale(0.5);
+      this.tweens.add({
+        targets: puff,
+        scale: 1.1,
+        alpha: 0,
+        duration: 320,
+        onComplete: () => puff.destroy(),
+      });
+      enemy.die();
+    }
   }
 
   private completeLevel(wasBoss = false): void {

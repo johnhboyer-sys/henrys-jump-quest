@@ -10,8 +10,15 @@ import type { ProjectileOptions } from '../Projectile';
  */
 export interface EnemyWorld {
   shoot(x: number, y: number, opts: ProjectileOptions): void;
-  /** Drop a galactic-grade enemy into the fight at this x, on the floor. */
-  spawnMinion(kind: EnemyKind, x: number): void;
+  /**
+   * Drop a minion into the fight at this x, on the floor. `galactic` defaults
+   * to true, so the Galactic Raider's summons are unchanged; a boss that wants
+   * an ordinary-strength minion passes `galactic: false`. `owner` tags the
+   * minion so a boss can later count or clear its own summons.
+   */
+  spawnMinion(kind: EnemyKind, x: number, opts?: { galactic?: boolean; owner?: object }): void;
+  /** How many live minions were spawned with this owner. */
+  countMinionsFor(owner: object): number;
   player: Player;
 }
 
@@ -40,6 +47,9 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   /** Galactic minions are ordinary enemies wearing the boss's colours. */
   readonly elite: boolean;
+
+  /** Which boss spawned this minion, if any. Lets a boss track its own summons. */
+  owner?: object;
 
   constructor(scene: Phaser.Scene, spawn: EnemySpawn, def: EnemyDef, elite = false) {
     super(scene, spawn.x, spawn.y, def.texture);
