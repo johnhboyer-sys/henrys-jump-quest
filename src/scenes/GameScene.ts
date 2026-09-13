@@ -217,8 +217,10 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     for (const cp of level.checkpoints) this.checkpoints.push(new Checkpoint(this, cp.x, cp.y));
     if (level.goal) this.goal = new GoalFlag(this, level.goal.x, level.goal.y);
 
-    // Moo Moo Hole: at the start of every normal level, never in a boss one.
-    if (!this.isHoleFight && !level.boss) {
+    // Moo Moo Hole: at the start of a normal level you have already beaten (in
+    // this mode's save), never in a boss one. John: it is a shortcut through a
+    // level you have done before, not a way past a new one.
+    if (!this.isHoleFight && !level.boss && save.clearedLevel >= level.id) {
       this.hole = new MooMooHole(this, level.playerStart.x + MOO_MOO.holeOffsetX, FLOOR_Y);
     }
 

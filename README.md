@@ -169,7 +169,9 @@ feature back out.
 
 **The Moo Moo Cow Mom Hole** — a dark, cow-print-rimmed hole with a sign
 above it ("MOO MOO COW MOM HOLE ↓"), sitting on the ground near the start of
-every normal level (never a boss level, and never a gap in the ground —
+every normal level you have already beaten in the current mode (John's rule:
+it is a shortcut through a level you have done before, not a way past a new
+one; never a boss level, and never a gap in the ground —
 purely decoration and a trigger). Stand on it and press ↓ to drop in. Pick
 any boss you have already beaten in the current mode with ↑ ↓ and ENTER (or a
 click); ESC climbs back out. Beat one and you get a **weaker copy**: 1000 HP
