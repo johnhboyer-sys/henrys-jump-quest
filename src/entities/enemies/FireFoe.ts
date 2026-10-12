@@ -54,7 +54,7 @@ export class FireFoe extends Enemy {
     }
   }
 
-  private spit(): void {
+  protected spit(): void {
     const p = this.world.player;
     const fire = ENEMY_PROJECTILE.fire;
     const angle = Phaser.Math.Angle.Between(this.x, this.y - 30, p.x, p.y - 20);

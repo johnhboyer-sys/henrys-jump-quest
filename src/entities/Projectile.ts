@@ -11,7 +11,7 @@ export interface ProjectileOptions {
   bounce?: number;
   lifetimeMs?: number;
   /** Status effect applied to whatever it hits. */
-  status?: 'slow' | 'freeze' | 'stuck';
+  status?: 'slow' | 'freeze' | 'stuck' | 'poison';
   spin?: number;
   scale?: number;
   /** Boss attacks and shots from boss-owned minions still hurt god skins. */
@@ -27,7 +27,7 @@ export interface ProjectileOptions {
  */
 export class Projectile extends Phaser.Physics.Arcade.Sprite {
   damage = 0;
-  status: 'slow' | 'freeze' | 'stuck' | null = null;
+  status: 'slow' | 'freeze' | 'stuck' | 'poison' | null = null;
   bouncesLeft = 0;
   bossShot = false;
   element: 'fire' | 'lightning' | null = null;

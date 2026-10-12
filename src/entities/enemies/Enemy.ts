@@ -19,6 +19,9 @@ export interface EnemyWorld {
   spawnMinion(kind: EnemyKind, x: number, opts?: { galactic?: boolean; owner?: object }): void;
   /** How many live minions were spawned with this owner. */
   countMinionsFor(owner: object): number;
+  startBossRain(owner: object, follow: boolean): void;
+  growPlantWalls(x: number): void;
+  startLightningStrikes(owner: object): void;
   player: Player;
 }
 
@@ -37,7 +40,7 @@ export const ELITE = {
  * Subclasses implement `behave` and nothing else.
  */
 export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
-  readonly def: EnemyDef;
+  def: EnemyDef;
   hp: number;
   dir: 1 | -1 = 1;
   protected leftBound: number;

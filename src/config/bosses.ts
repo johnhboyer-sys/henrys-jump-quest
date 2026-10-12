@@ -11,7 +11,9 @@ export type BossKind =
   | 'galacticRaider'
   | 'shellcrackerMom'
   | 'kittyRaider'
-  | 'shellcrackerDad';
+  | 'shellcrackerDad'
+  | 'gardenerShellcracker'
+  | 'thunderRaider';
 
 export interface BossDef {
   id: string;
@@ -31,7 +33,7 @@ export interface BossDef {
   walkSpeed: number;
   /** Only power-up attacks can hurt it; stomps and everything else bounce off. */
   powerUpOnly: boolean;
-  /** Future bosses can require Primrose's elemental shots. No current boss sets this. */
+  /** A boss can require Primrose's elemental shots. */
   primroseOnly?: boolean;
   /** HP fraction below which it gets faster and angrier. */
   enrageAt: number;
@@ -137,12 +139,32 @@ export const SHELLCRACKER_DAD: BossDef = {
   clearMinionsOnDeath: true,
 };
 
+export const GARDENER_SHELLCRACKER: BossDef = {
+  id: 'gardenerShellcracker', kind: 'gardenerShellcracker', name: 'Gardener Shellcracker',
+  title: 'The Greenhouse Keeper', // placeholder: not Henry's number
+  texture: 'boss-gardener', hp: 1700, // placeholder: not Henry's number
+  hitsToKill: 17, bodyWidth: 160, bodyHeight: 130, // placeholder: not Henry's number (body size)
+  touchDamage: 15, attackIntervalMs: 2300, telegraphMs: 950, walkSpeed: 0, // placeholder: not Henry's number
+  powerUpOnly: true, primroseOnly: true, enrageAt: 0.5, clearMinionsOnDeath: true, // placeholder: not Henry's number (enrage threshold)
+};
+
+export const THUNDER_RAIDER: BossDef = {
+  id: 'thunderRaider', kind: 'thunderRaider', name: 'Thunder Raider',
+  title: 'Storm Over the Sky', // placeholder: not Henry's number
+  texture: 'boss-thunder', hp: 1800, // placeholder: not Henry's number
+  hitsToKill: 18, bodyWidth: 160, bodyHeight: 100, // placeholder: not Henry's number (body size)
+  touchDamage: 18, attackIntervalMs: 2200, telegraphMs: 950, walkSpeed: 100, // placeholder: not Henry's number
+  powerUpOnly: true, primroseOnly: true, enrageAt: 0.5, clearMinionsOnDeath: true, // placeholder: not Henry's number (enrage threshold)
+};
+
 export const BOSSES: Record<string, BossDef> = {
   shellcracker: SHELLCRACKER,
   galacticRaider: GALACTIC_RAIDER,
   shellcrackerMom: SHELLCRACKER_MOM,
   kittyRaider: KITTY_RAIDER,
   shellcrackerDad: SHELLCRACKER_DAD,
+  gardenerShellcracker: GARDENER_SHELLCRACKER,
+  thunderRaider: THUNDER_RAIDER,
 };
 
 /** Shellcracker's specifics. */

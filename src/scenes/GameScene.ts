@@ -123,6 +123,11 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   private paused = false;
   private pausedAt = 0;
   private bossContactAt = 0;
+  private poisonTimer?: Phaser.Time.TimerEvent;
+  private poisonTicks = 0;
+  private plantWalls?: Phaser.Physics.Arcade.StaticGroup;
+  private wallPieces: { parts: Phaser.GameObjects.Rectangle[]; hp: number }[] = [];
+  private lastImmuneAt = 0;
 
   constructor() {
     super('Game');
@@ -167,6 +172,10 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.thrownEnemies = new Map();
     this.bossContactAt = 0;
     this.iceSurfaces = new Set();
+    this.poisonTimer = undefined;
+    this.poisonTicks = 0;
+    this.wallPieces = [];
+    this.plantWalls = undefined;
 
     const save = loadSave();
     // A fresh stock of lives per attempt, plus anything banked from a boss.
@@ -206,6 +215,12 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     const avail = availableSkins(save, level.id);
     const startSkin: SkinId = avail.includes(save.skin) ? save.skin : 'tom';
     this.player = new Player(this, level.playerStart.x, level.playerStart.y, startSkin);
+    if (this.isHoleFight && level.boss && BOSSES[level.boss.id]?.primroseOnly && avail.includes('primrose')) {
+      this.player.setSkin('primrose');
+    }
+    if (!this.isHoleFight && level.id >= 12 && level.id <= 16 && this.player.skin !== 'primrose' && avail.includes('primrose')) {
+      this.time.delayedCall(450, () => this.flashBanner('PRIMROSE: LIGHTNING + FIRE\nESC: SWITCH SKINS')); // placeholder: not Henry's number
+    }
     // Transformations never survive a level change on their own. What carries
     // in is the level's starting power-up (or one bought in the shop, which
     // takes its place) and any Star or Mushroom bought to last whole levels.
@@ -330,6 +345,12 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       }
     });
     this.physics.add.collider(this.enemies, this.solids);
+    if (this.level.boss?.id === 'gardenerShellcracker') {
+      this.plantWalls = this.physics.add.staticGroup();
+      this.physics.add.collider(this.player, this.plantWalls);
+      this.physics.add.overlap(this.playerShots, this.plantWalls, (shot, wall) => this.onShotHitsWall(shot as Projectile, wall as Phaser.GameObjects.Rectangle));
+      this.physics.add.overlap(this.backfireShots, this.plantWalls, (shot) => (shot as Projectile).pop());
+    }
     this.physics.add.collider(this.enemies, this.blocks);
 
     this.physics.add.collider(this.player, this.blocks, (_p, b) =>
@@ -775,6 +796,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
     // A star or the god mushroom clears anything it touches, instantly.
     if (this.player.isInvincible || this.player.hasGodStar) {
+      if (this.elementOnly(enemy)) { this.noteEnemyImmune(enemy); return; }
       play('stomp');
       this.killEnemy(enemy, SCORE.enemyStomp);
       return;
@@ -828,6 +850,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     const status = shot.status;
     shot.pop();
 
+    if (status === 'poison') { this.startPoison(); return; }
     if (this.player.takeDamage(damage, shot.x, shot.bossShot)) {
       if (status === 'slow') this.player.applyStatus('slow');
       if (status === 'stuck') this.player.applyStatus('stuck');
@@ -840,9 +863,109 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
   private onShotHitsEnemy(shot: Projectile, enemy: Enemy): void {
     if (!shot.active || !enemy.active) return;
-    // `shot.primroseShot` and `shot.element` are available for later enemy rules.
+    const allowed = enemy.def.kind === 'waterGuy' ? shot.primroseShot && shot.element === 'lightning' :
+      enemy.def.kind === 'poisonFlower' ? shot.element === 'fire' : true;
     shot.pop();
+    if (!allowed) { this.noteEnemyImmune(enemy); return; }
     if (enemy.hit(shot.damage)) this.killEnemy(enemy, SCORE.enemyBurned);
+  }
+
+  private elementOnly(enemy: Enemy): boolean {
+    return enemy.def.kind === 'waterGuy' || enemy.def.kind === 'poisonFlower';
+  }
+
+  private noteEnemyImmune(enemy: Enemy): void {
+    if (this.time.now - this.lastImmuneAt < 550) return; // placeholder: not Henry's number
+    this.lastImmuneAt = this.time.now;
+    const message = enemy.def.kind === 'waterGuy' ? 'ZAP IT!' : 'FIRE ONLY!';
+    const note = this.add.text(enemy.x, enemy.y - 75, message, { fontFamily: 'monospace', fontSize: '20px', color: '#ffffff', stroke: '#15252d', strokeThickness: 4 }).setOrigin(0.5).setDepth(40); // placeholder: not Henry's number
+    this.tweens.add({ targets: note, y: note.y - 35, alpha: 0, duration: 750, onComplete: () => note.destroy() }); // placeholder: not Henry's number
+  }
+
+  private startPoison(): void {
+    if (!this.player.isAlive || this.player.isInvincible || this.player.hasGodStar) return;
+    this.stopPoison();
+    this.poisonTicks = 4; // placeholder: not Henry's number
+    this.player.setTint(0x76d957);
+    this.poisonTimer = this.time.addEvent({ delay: 1000, repeat: 3, callback: () => { // placeholder: not Henry's number
+      if (this.finished || !this.player.isAlive) { this.stopPoison(); return; }
+      this.poisonTicks -= 1;
+      if (!this.player.isInvincible && !this.player.hasGodStar) {
+        this.player.hp = Math.max(0, this.player.hp - 2); // placeholder: not Henry's number
+        play('hurt'); this.emitHud(); this.checkDeath();
+      }
+      if (this.poisonTicks <= 0) this.stopPoison();
+    } });
+  }
+
+  private stopPoison(): void {
+    this.poisonTimer?.remove(false);
+    this.poisonTimer = undefined;
+    this.poisonTicks = 0;
+    if (this.player?.active) this.player.clearTint();
+  }
+
+  /** Falling rain uses the normal enemy-shot/platform collision. */
+  startBossRain(owner: object, follow: boolean): void {
+    const boss = owner as BossBase;
+    const cloud = follow ? this.add.image(this.player.x, 100, 'boss-thunder').setScale(0.35).setDepth(20) : undefined; // placeholder: not Henry's number
+    let fired = 0;
+    const duration = follow ? 5000 : 3500; // placeholder: not Henry's number
+    const event = this.time.addEvent({ delay: 260, repeat: Math.ceil(duration / 260) - 1, callback: () => { // placeholder: not Henry's number
+      if (!boss.active || this.finished) { event.remove(false); cloud?.destroy(); return; }
+      if (cloud) cloud.x += (this.player.x - cloud.x) * 0.3; // placeholder: not Henry's number
+      const x = cloud ? cloud.x : Phaser.Math.Between(Math.max(100, boss.x - 650), Math.min(this.level.worldWidth - 100, boss.x + 650)); // placeholder: not Henry's number
+      this.shoot(x, 80, { texture: 'proj-water', damage: 4, vx: 0, vy: 380, lifetimeMs: 2200, bossShot: true }); // placeholder: not Henry's number
+      fired++;
+      if (fired >= Math.ceil(duration / 260)) cloud?.destroy();
+    } });
+  }
+
+  startLightningStrikes(owner: object): void {
+    const boss = owner as BossBase;
+    for (let i = 0; i < 3; i++) { // placeholder: not Henry's number
+      this.time.delayedCall(i * 700, () => { // placeholder: not Henry's number
+        if (!boss.active || this.finished) return;
+        const x = Phaser.Math.Clamp(this.player.x + (i === 0 ? 0 : (i === 1 ? -130 : 130)), 80, this.level.worldWidth - 80); // placeholder: not Henry's number
+        const mark = this.add.rectangle(x, FLOOR_Y - 8, 70, 16, 0xffed65, 0.7).setDepth(20); // placeholder: not Henry's number
+        this.time.delayedCall(1000, () => { // placeholder: not Henry's number
+          mark.destroy();
+          if (!boss.active || this.finished) return;
+          const bolt = this.add.rectangle(x, FLOOR_Y / 2, 36, FLOOR_Y, 0xffed8a, 0.8).setDepth(21); // placeholder: not Henry's number
+          this.time.delayedCall(180, () => bolt.destroy()); // placeholder: not Henry's number
+          if (Math.abs(this.player.x - x) < 42 && this.player.y > FLOOR_Y - 85 && this.player.takeDamage(15, x, true)) { // placeholder: not Henry's number
+            play('hurt'); this.emitHud(); this.checkDeath();
+          }
+        });
+      });
+    }
+  }
+
+  growPlantWalls(x: number): void {
+    this.clearPlantWalls();
+    if (!this.plantWalls) return;
+    for (const offset of [-190, 190]) { // placeholder: not Henry's number
+      const parts = [
+        this.add.rectangle(x + offset, 600, 34, 80, 0x388a43).setDepth(18),
+        this.add.rectangle(x + offset, 427, 34, 155, 0x388a43).setDepth(18),
+      ]; // placeholder: not Henry's number; gap from y 505 to 560, level 14 ledges at y 550
+      for (const part of parts) { this.plantWalls.add(part); (part.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject(); }
+      this.wallPieces.push({ parts, hp: 3 }); // placeholder: not Henry's number
+    }
+  }
+
+  private clearPlantWalls(): void {
+    for (const wall of this.wallPieces) for (const part of wall.parts) part.destroy();
+    this.wallPieces = [];
+  }
+
+  private onShotHitsWall(shot: Projectile, part: Phaser.GameObjects.Rectangle): void {
+    if (!shot.active) return;
+    shot.pop();
+    const wall = this.wallPieces.find((w) => w.parts.includes(part));
+    if (!wall || shot.element !== 'fire') return;
+    wall.hp -= 1;
+    if (wall.hp <= 0) { for (const piece of wall.parts) piece.destroy(); this.wallPieces.splice(this.wallPieces.indexOf(wall), 1); }
   }
 
   private onShotHitsBoss(shot: Projectile): void {
@@ -992,6 +1115,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       const enemy = obj as Enemy;
       if (!enemy.active) continue;
       if (!Phaser.Geom.Intersects.RectangleToRectangle(rect, enemy.getBounds())) continue;
+      if (this.elementOnly(enemy)) { this.noteEnemyImmune(enemy); continue; }
       // The sword ignores the flat damage and takes a quarter of the target's
       // own max HP — that is what makes it a 4-hit kill on anything, minions
       // included, whatever their raw HP happens to be.
@@ -1022,6 +1146,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       const enemy = obj as Enemy;
       if (!enemy.active || this.thrownEnemies.has(enemy) || enemy === this.carriedEnemy) continue;
       if (!Phaser.Geom.Intersects.RectangleToRectangle(rect, enemy.getBounds())) continue;
+      if (this.elementOnly(enemy)) { this.noteEnemyImmune(enemy); continue; }
       const damage = enemy.def.hp * KITTY_SUIT.fraction;
       if (enemy.hit(damage)) this.killEnemy(enemy, SCORE.enemyBurned);
     }
@@ -1045,7 +1170,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       const enemy = obj as Enemy;
       // Ordinary enemies only — not a galactic minion, and not a boss (bosses
       // are never members of this group in the first place).
-      if (!enemy.active || enemy.elite || this.thrownEnemies.has(enemy)) continue;
+      if (!enemy.active || enemy.elite || this.elementOnly(enemy) || this.thrownEnemies.has(enemy)) continue;
       const ahead = (enemy.x - originX) * dir;
       if (ahead < -20 || ahead > GOD_TOM.pickupRangePx) continue;
       // Feet to feet in both directions, so an enemy on another floor or a
@@ -1153,6 +1278,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     const victim = aThrown ? b : a;
     if (!thrown.active || !victim.active || victim === this.carriedEnemy) return;
     this.despawnThrown(thrown);
+    if (this.elementOnly(victim)) { this.noteEnemyImmune(victim); return; }
     this.killEnemy(victim, SCORE.enemyBurned);
   }
 
@@ -1218,6 +1344,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   private killPlayer(): void {
     if (this.finished) return;
     this.dropCarriedEnemy();
+    this.stopPoison();
     this.player.hp = 0;
     this.player.clearForm();
     this.player.setActive(false);
@@ -1253,6 +1380,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   private runOutOfLives(): void {
     if (this.finished) return;
     this.finished = true;
+    this.stopPoison();
 
     // The hole fight never re-locks anything — win or lose, it is just a
     // rematch. Losing sends the player back to the origin level's start.
@@ -1286,6 +1414,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (this.finished) return;
     const spot = this.safeRespawnSpot(this.bestRespawn());
     this.player.setAngle(0);
+    this.stopPoison();
     this.player.resetForRespawn(spot.x, spot.y);
     // Clear anything still in the air, so you don't respawn into a fireball.
     this.enemyShots.getChildren().forEach((s) => (s as Projectile).disable());
@@ -1368,10 +1497,12 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   private defeatBoss(): void {
     if (!this.boss) return;
     this.finished = true;
+    this.stopPoison();
     if (this.boss.def.clearMinionsOnDeath) this.clearBossMinions(this.boss);
     this.events.emit('boss', { hp: 0, maxHp: this.boss.maxHp, name: this.boss.def.name });
     // A hole fight never runs completeLevel: no coins, no best score, no
     // recordLevelClear — see completeHoleFight().
+    this.clearPlantWalls();
     this.boss.defeat(() => (this.isHoleFight ? this.completeHoleFight() : this.completeLevel(true)));
   }
 
@@ -1406,6 +1537,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   private completeLevel(wasBoss = false): void {
     if (this.finished && !wasBoss) return;
     this.finished = true;
+    this.stopPoison();
 
     const bonus = this.player.hp * SCORE.hpBonusPerPoint;
     this.score += (wasBoss ? SCORE.bossClear : SCORE.levelClear) + bonus;
@@ -1445,6 +1577,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
         color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 7,
+        align: 'center',
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
@@ -1566,6 +1699,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     // Fell off the world.
     if (this.player.y > DEATH_Y) this.killPlayer();
 
+    if (this.poisonTicks > 0) this.player.setTint(0x76d957);
     this.touchingIce = false;
     this.standingOnHole = false;
   }

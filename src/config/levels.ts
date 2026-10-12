@@ -61,7 +61,7 @@ export interface IcicleDef {
 export interface LevelDef {
   id: number;
   name: string;
-  theme: 'grass' | 'ice' | 'shore' | 'galactic';
+  theme: 'grass' | 'ice' | 'shore' | 'galactic' | 'storm';
   worldWidth: number;
   /** Feet position. */
   playerStart: { x: number; y: number };
@@ -886,7 +886,7 @@ const LEVEL_10: LevelDef = {
 };
 
 // ---------------------------------------------------------------------------
-// Level 11 — the last level: a short approach, a tiny tunnel, then Boo Boo
+// Level 11 — a short approach, a tiny tunnel, then Boo Boo
 // Bot Head.
 // ---------------------------------------------------------------------------
 const LEVEL_11: LevelDef = {
@@ -949,6 +949,84 @@ const LEVEL_11: LevelDef = {
   tunnels: [{ x: 1100, w: 100 }],
 };
 
+// Levels 12-16: layouts and all positions are placeholders, not Henry's numbers.
+const LEVEL_12: LevelDef = { // placeholder: not Henry's number
+  id: 12, name: 'Primrose Gardens', theme: 'grass', worldWidth: 5400, // placeholder: not Henry's number
+  playerStart: { x: 120, y: FLOOR_Y }, startingPowerUp: 'fireball', // placeholder: not Henry's number
+  platforms: [ground(0, 1300), ground(1460, 1200), ground(2820, 1200), ground(4180, 1220), // placeholder: not Henry's number
+    plat(480, 500, 190), plat(840, 400, 180), plat(1200, 480, 180), plat(1730, 500, 200), plat(2100, 400, 200), plat(2470, 490, 160), // placeholder: not Henry's number
+    plat(2990, 500, 180), plat(3330, 390, 200), plat(3720, 480, 180), plat(4380, 480, 200), plat(4790, 390, 200)], // placeholder: not Henry's number
+  enemies: [
+    { kind: 'waterGuy', x: 700, y: FLOOR_Y, left: 570, right: 1000 }, // placeholder: not Henry's number
+    { kind: 'mushroom', x: 1200, y: FLOOR_Y }, // placeholder: not Henry's number
+    { kind: 'poisonFlower', x: 1910, y: FLOOR_Y }, // placeholder: not Henry's number
+    { kind: 'kitty', x: 2400, y: FLOOR_Y }, // placeholder: not Henry's number
+    { kind: 'waterGuy', x: 3200, y: FLOOR_Y, left: 3020, right: 3500 }, // placeholder: not Henry's number
+    { kind: 'poisonFlower', x: 3900, y: FLOOR_Y }, // placeholder: not Henry's number
+    { kind: 'butterfly', x: 4650, y: 270 }, // placeholder: not Henry's number
+  ],
+  blocks: [{ x: 360, y: 390, contains: 'fireball' }, { x: 920, y: 280, contains: 'heart' }, { x: 1800, y: 370, contains: 'fireball' }, { x: 3320, y: 260, contains: 'fireball' }, { x: 4500, y: 350, contains: 'heart' }], // placeholder: not Henry's number
+  coins: [...coinArc(260, 560, 5), ...coinRow(850, 340, 4), ...coinArc(1400, 560, 5), ...coinRow(2100, 340, 4), ...coinArc(2760, 560, 5), ...coinRow(3330, 330, 4), ...coinArc(4080, 560, 5), ...coinRow(4790, 330, 4)], // placeholder: not Henry's number
+  icicles: [], checkpoints: [{ x: 1250, y: FLOOR_Y }, { x: 2600, y: FLOOR_Y }, { x: 4020, y: FLOOR_Y }], goal: { x: 5340, y: FLOOR_Y }, // placeholder: not Henry's number
+};
+
+const LEVEL_13: LevelDef = { // placeholder: not Henry's number
+  id: 13, name: 'Puddle Path', theme: 'grass', worldWidth: 5800, // placeholder: not Henry's number
+  playerStart: { x: 120, y: FLOOR_Y }, startingPowerUp: 'fireball', // placeholder: not Henry's number
+  platforms: [ground(0, 920), ground(1080, 1000), ground(2250, 1050), ground(3460, 980), ground(4600, 1200), // placeholder: not Henry's number
+    plat(450, 490, 190), plat(800, 390, 180), plat(1190, 510, 170), plat(1550, 400, 200), plat(1920, 480, 180), // placeholder: not Henry's number
+    plat(2370, 500, 180), plat(2770, 390, 200), plat(3190, 480, 180), plat(3590, 500, 190), plat(3950, 390, 200), plat(4330, 490, 180), plat(4790, 480, 190), plat(5150, 380, 200)], // placeholder: not Henry's number
+  enemies: [
+    { kind: 'waterGuy', x: 600, y: FLOOR_Y }, { kind: 'poisonFlower', x: 1500, y: FLOOR_Y }, // placeholder: not Henry's number
+    { kind: 'waterGuy', x: 1930, y: FLOOR_Y }, { kind: 'kitty', x: 2510, y: FLOOR_Y }, // placeholder: not Henry's number
+    { kind: 'poisonFlower', x: 3070, y: FLOOR_Y }, { kind: 'waterGuy', x: 3730, y: FLOOR_Y }, // placeholder: not Henry's number
+    { kind: 'butterfly', x: 4190, y: 250 }, { kind: 'poisonFlower', x: 4920, y: FLOOR_Y }, // placeholder: not Henry's number
+    { kind: 'waterGuy', x: 5380, y: FLOOR_Y }, { kind: 'snappyTurtle', x: 5600, y: FLOOR_Y }, // placeholder: not Henry's number
+  ],
+  blocks: [{ x: 480, y: 370, contains: 'fireball' }, { x: 1580, y: 280, contains: 'fireball' }, { x: 2760, y: 260, contains: 'heart' }, { x: 3940, y: 270, contains: 'fireball' }, { x: 5160, y: 250, contains: 'fireball' }], // placeholder: not Henry's number
+  coins: [...coinArc(280, 560, 5), ...coinRow(800, 330, 4), ...coinArc(1040, 560, 5), ...coinRow(1550, 340, 4), ...coinArc(2170, 560, 5), ...coinRow(2770, 330, 4), ...coinArc(3400, 560, 5), ...coinRow(3950, 330, 4), ...coinArc(4540, 560, 5), ...coinRow(5150, 320, 4)], // placeholder: not Henry's number
+  icicles: [], checkpoints: [{ x: 870, y: FLOOR_Y }, { x: 2130, y: FLOOR_Y }, { x: 3300, y: FLOOR_Y }, { x: 4450, y: FLOOR_Y }], goal: { x: 5740, y: FLOOR_Y }, // placeholder: not Henry's number
+};
+
+const LEVEL_14: LevelDef = { // placeholder: not Henry's number
+  id: 14, name: "The Gardener's Greenhouse", theme: 'grass', worldWidth: 3100, // placeholder: not Henry's number
+  playerStart: { x: 120, y: FLOOR_Y }, startingPowerUp: 'fireball', // placeholder: not Henry's number
+  platforms: [ground(0, 3100), plat(400, 480, 190), plat(760, 390, 180), plat(1300, 470, 190), // placeholder: not Henry's number
+    plat(1900, 550, 180), plat(2220, 420, 180), plat(2710, 550, 180), plat(2820, 420, 180)], // placeholder: not Henry's number
+  enemies: [{ kind: 'waterGuy', x: 690, y: FLOOR_Y }, { kind: 'poisonFlower', x: 1250, y: FLOOR_Y }], // placeholder: not Henry's number
+  blocks: [{ x: 480, y: 350, contains: 'fireball' }, { x: 1440, y: 340, contains: 'heart' }, { x: 1960, y: 430, contains: 'fireball' }, { x: 2740, y: 430, contains: 'fireball' }, { x: 2250, y: 290, contains: 'heart' }], // placeholder: not Henry's number
+  coins: [...coinRow(280, 560, 5), ...coinRow(760, 330, 4), ...coinArc(1450, 560, 5), ...coinRow(1900, 490, 4), ...coinRow(2700, 490, 4)], // placeholder: not Henry's number
+  icicles: [], checkpoints: [{ x: 1100, y: FLOOR_Y }, { x: 1630, y: FLOOR_Y }], boss: { id: 'gardenerShellcracker', x: 2500, y: FLOOR_Y }, // placeholder: not Henry's number
+};
+
+const LEVEL_15: LevelDef = { // placeholder: not Henry's number
+  id: 15, name: 'Stormy Heights', theme: 'storm', worldWidth: 6200, // placeholder: not Henry's number
+  playerStart: { x: 120, y: FLOOR_Y }, startingPowerUp: 'cloud', // placeholder: not Henry's number
+  platforms: [ground(0, 830), ground(1000, 850), ground(2020, 900), ground(3090, 900), ground(4160, 800), ground(5130, 1070), // placeholder: not Henry's number
+    plat(380, 490, 180), plat(700, 390, 180), plat(1080, 520, 160), plat(1410, 410, 190), plat(1780, 330, 180), // placeholder: not Henry's number
+    plat(2150, 500, 190), plat(2500, 390, 190), plat(2850, 480, 180), plat(3220, 500, 180), plat(3580, 380, 200), plat(3950, 480, 180), // placeholder: not Henry's number
+    plat(4290, 510, 180), plat(4640, 390, 200), plat(5020, 500, 180), plat(5370, 390, 200), plat(5750, 480, 180)], // placeholder: not Henry's number
+  enemies: [
+    { kind: 'waterGuy', x: 560, y: FLOOR_Y }, { kind: 'poisonFlower', x: 1400, y: FLOOR_Y }, { kind: 'butterfly', x: 1760, y: 260 }, // placeholder: not Henry's number
+    { kind: 'waterGuy', x: 2220, y: FLOOR_Y }, { kind: 'fireFoe', x: 2680, y: FLOOR_Y }, { kind: 'poisonFlower', x: 2930, y: FLOOR_Y }, // placeholder: not Henry's number
+    { kind: 'waterGuy', x: 3440, y: FLOOR_Y }, { kind: 'kitty', x: 3860, y: FLOOR_Y }, { kind: 'poisonFlower', x: 4400, y: FLOOR_Y }, // placeholder: not Henry's number
+    { kind: 'butterfly', x: 4800, y: 250 }, { kind: 'waterGuy', x: 5500, y: FLOOR_Y }, { kind: 'poisonFlower', x: 5830, y: FLOOR_Y }, // placeholder: not Henry's number
+  ],
+  blocks: [{ x: 450, y: 360, contains: 'fireball' }, { x: 1500, y: 280, contains: 'heart' }, { x: 2520, y: 260, contains: 'fireball' }, { x: 3630, y: 250, contains: 'fireball' }, { x: 4670, y: 260, contains: 'heart' }, { x: 5400, y: 260, contains: 'fireball' }], // placeholder: not Henry's number
+  coins: [...coinArc(260, 560, 5), ...coinRow(700, 330, 4), ...coinArc(960, 560, 5), ...coinRow(1410, 350, 4), ...coinArc(1960, 560, 5), ...coinRow(2500, 330, 4), ...coinArc(3030, 560, 5), ...coinRow(3580, 320, 4), ...coinArc(4100, 560, 5), ...coinRow(4640, 330, 4), ...coinArc(5080, 560, 5), ...coinRow(5370, 330, 4)], // placeholder: not Henry's number
+  icicles: [], checkpoints: [{ x: 780, y: FLOOR_Y }, { x: 1880, y: FLOOR_Y }, { x: 2960, y: FLOOR_Y }, { x: 4010, y: FLOOR_Y }, { x: 4990, y: FLOOR_Y }], goal: { x: 6140, y: FLOOR_Y }, // placeholder: not Henry's number
+};
+
+const LEVEL_16: LevelDef = { // placeholder: not Henry's number
+  id: 16, name: "Thunder Raider's Sky", theme: 'storm', worldWidth: 3100, // placeholder: not Henry's number
+  playerStart: { x: 120, y: FLOOR_Y }, startingPowerUp: 'fireball', // placeholder: not Henry's number
+  platforms: [ground(0, 3100), plat(420, 480, 180), plat(760, 390, 180), plat(1350, 480, 190), plat(1770, 520, 190), plat(2100, 420, 200), plat(2470, 520, 190), plat(2760, 420, 180)], // placeholder: not Henry's number
+  enemies: [{ kind: 'waterGuy', x: 700, y: FLOOR_Y }, { kind: 'poisonFlower', x: 1270, y: FLOOR_Y }], // placeholder: not Henry's number
+  blocks: [{ x: 480, y: 350, contains: 'fireball' }, { x: 1400, y: 350, contains: 'heart' }, { x: 1840, y: 400, contains: 'fireball' }, { x: 2500, y: 400, contains: 'fireball' }, { x: 2800, y: 290, contains: 'heart' }], // placeholder: not Henry's number
+  coins: [...coinRow(260, 560, 5), ...coinRow(760, 330, 4), ...coinArc(1480, 560, 5), ...coinRow(1800, 460, 4), ...coinRow(2500, 460, 4)], // placeholder: not Henry's number
+  icicles: [], checkpoints: [{ x: 1050, y: FLOOR_Y }, { x: 1580, y: FLOOR_Y }], boss: { id: 'thunderRaider', x: 2500, y: FLOOR_Y }, // placeholder: not Henry's number
+};
+
 export const LEVELS: LevelDef[] = [
   LEVEL_1,
   LEVEL_2,
@@ -961,6 +1039,11 @@ export const LEVELS: LevelDef[] = [
   LEVEL_9,
   LEVEL_10,
   LEVEL_11,
+  LEVEL_12,
+  LEVEL_13,
+  LEVEL_14,
+  LEVEL_15,
+  LEVEL_16,
 ];
 
 export function getLevel(id: number): LevelDef {

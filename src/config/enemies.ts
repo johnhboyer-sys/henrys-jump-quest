@@ -8,7 +8,9 @@ export type EnemyKind =
   | 'fireFoe'
   | 'snappyTurtle'
   | 'butterfly'
-  | 'kitty';
+  | 'kitty'
+  | 'waterGuy'
+  | 'poisonFlower';
 
 export interface EnemyDef {
   kind: EnemyKind;
@@ -59,6 +61,17 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     aggroRange: 520,
     attackCooldownMs: 1700,
     scoreValue: 70,
+  },
+
+  waterGuy: {
+    kind: 'waterGuy', texture: 'enemy-waterGuy', hp: 25, touchDamage: 12, // placeholder: not Henry's number (copied touch damage)
+    speed: 90, stompable: false, bodyWidth: 44, bodyHeight: 50, // placeholder: not Henry's number
+    aggroRange: 520, attackCooldownMs: 1700, scoreValue: 70, // placeholder: not Henry's number
+  },
+  poisonFlower: {
+    kind: 'poisonFlower', texture: 'enemy-poisonFlower', hp: 25, touchDamage: 12, // placeholder: not Henry's number (copied touch damage)
+    speed: 0, stompable: false, bodyWidth: 44, bodyHeight: 50, // placeholder: not Henry's number
+    aggroRange: 520, attackCooldownMs: 2100, scoreValue: 70, // placeholder: not Henry's number
   },
 
   /** Slow until you get close, then it lunges and bites for 10. */
@@ -113,6 +126,8 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 export const ENEMY_PROJECTILE = {
   spore: { damage: 5, speed: 300, texture: 'proj-spore' },
   fire: { damage: 8, speed: 340, texture: 'proj-fire' },
+  water: { damage: 8, speed: 340, texture: 'proj-water' }, // placeholder: not Henry's number (speed)
+  poison: { damage: 0, speed: 300, texture: 'proj-poison' }, // placeholder: not Henry's number
   rain: { damage: 1, speed: 260, texture: 'proj-rain' },
   shell: { damage: 15, speed: 420, texture: 'proj-shell' },
   bossFire: { damage: 12, speed: 300, texture: 'proj-bossfire' },

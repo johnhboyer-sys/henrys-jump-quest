@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 
 /**
- * Art for the level 6-11 expansion: the kitty enemy, the three new bosses,
+ * Art for the level 6-16 expansions: the kitty, Water Guy and Poison Flower enemies, the new bosses,
  * and their projectiles/props. Same one-function-per-texture pattern as
  * BootScene — see `tex` there. Kept in its own file so the two content slices
  * (skins vs. this expansion) never touch the same source lines.
@@ -14,6 +14,35 @@ export function makeExpansionArt(scene: Phaser.Scene): void {
     g.generateTexture(key, w, h);
     g.destroy();
   }
+
+  // New expansion textures: all sizes and shapes are placeholders, not Henry's numbers.
+  tex('enemy-waterGuy', 52, 58, (g) => { // placeholder: not Henry's number
+    g.fillStyle(0x177bd1, 1); g.fillTriangle(26, 1, 2, 39, 50, 39); g.fillEllipse(26, 39, 48, 34); // placeholder: not Henry's number
+    g.fillStyle(0x69d8ff, 1); g.fillEllipse(17, 38, 14, 20); // placeholder: not Henry's number
+    g.fillStyle(0xffffff, 1); g.fillCircle(20, 38, 5); g.fillCircle(34, 38, 5); // placeholder: not Henry's number
+    g.fillStyle(0x17345a, 1); g.fillCircle(20, 39, 2); g.fillCircle(34, 39, 2); // placeholder: not Henry's number
+  });
+  tex('enemy-poisonFlower', 56, 60, (g) => { // placeholder: not Henry's number
+    g.lineStyle(7, 0x3a9b3d, 1); g.lineBetween(28, 58, 28, 27); // placeholder: not Henry's number
+    g.fillStyle(0x3a9b3d, 1); g.fillEllipse(17, 48, 23, 12); g.fillEllipse(39, 44, 23, 12); // placeholder: not Henry's number
+    for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.fillStyle(0xa243c1, 1); g.fillCircle(28 + Math.cos(a) * 15, 21 + Math.sin(a) * 15, 10); } // placeholder: not Henry's number
+    g.fillStyle(0xe8c842, 1); g.fillCircle(28, 21, 10); g.fillStyle(0x26252a, 1); g.fillCircle(24, 19, 2); g.fillCircle(32, 19, 2); // placeholder: not Henry's number
+  });
+  tex('proj-water', 24, 28, (g) => { g.fillStyle(0x45baff, 1); g.fillTriangle(12, 1, 2, 18, 22, 18); g.fillEllipse(12, 19, 20, 16); }); // placeholder: not Henry's number
+  tex('proj-poison', 26, 26, (g) => { g.fillStyle(0x80d14b, 1); g.fillCircle(13, 13, 11); g.fillStyle(0xc8ff87, 1); g.fillCircle(9, 9, 4); }); // placeholder: not Henry's number
+  tex('boss-gardener', 190, 170, (g) => { // placeholder: not Henry's number
+    g.fillStyle(0x6b472d, 1); g.fillEllipse(95, 98, 155, 120); g.fillStyle(0x438c54, 1); g.fillRoundedRect(62, 82, 72, 78, 8); // placeholder: not Henry's number
+    g.fillStyle(0x314f27, 1); g.fillRect(32, 31, 126, 12); g.fillRoundedRect(55, 4, 82, 35, 9); // placeholder: not Henry's number
+    g.fillStyle(0xc9e3a0, 1); g.fillCircle(72, 79, 10); g.fillCircle(116, 79, 10); // placeholder: not Henry's number
+    g.fillStyle(0x1c3029, 1); g.fillCircle(72, 79, 4); g.fillCircle(116, 79, 4); // placeholder: not Henry's number
+    g.fillStyle(0x6d9dbc, 1); g.fillRoundedRect(142, 100, 34, 42, 6); g.lineStyle(6, 0x6d9dbc, 1); g.strokeCircle(174, 109, 12); // placeholder: not Henry's number
+  });
+  tex('boss-thunder', 190, 140, (g) => { // placeholder: not Henry's number
+    g.fillStyle(0x303e59, 1); g.fillEllipse(90, 84, 164, 76); g.fillCircle(49, 60, 38); g.fillCircle(95, 46, 48); g.fillCircle(139, 62, 39); // placeholder: not Henry's number
+    g.fillStyle(0xb8d6ff, 1); g.fillCircle(68, 80, 8); g.fillCircle(117, 80, 8); // placeholder: not Henry's number
+    g.fillStyle(0x192638, 1); g.fillCircle(68, 81, 4); g.fillCircle(117, 81, 4); // placeholder: not Henry's number
+    g.fillStyle(0xffe967, 1); g.fillTriangle(91, 96, 109, 96, 91, 130); g.fillTriangle(91, 130, 79, 130, 101, 107); // placeholder: not Henry's number
+  });
 
   // -- Kitty enemy ------------------------------------------------------------
 

@@ -6,6 +6,8 @@ import { GalacticRaider } from './GalacticRaider';
 import { ShellcrackerMom } from './ShellcrackerMom';
 import { KittyRaider } from './KittyRaider';
 import { ShellcrackerDad } from './ShellcrackerDad';
+import { GardenerShellcracker } from './GardenerShellcracker';
+import { ThunderRaider } from './ThunderRaider';
 
 export { BossBase, Shellcracker, GalacticRaider, ShellcrackerMom, KittyRaider, ShellcrackerDad };
 export type { HitSource, TelegraphSpec } from './BossBase';
@@ -33,6 +35,10 @@ export function createBoss(
       return new KittyRaider(scene, def, x, feetY);
     case 'shellcrackerDad':
       return new ShellcrackerDad(scene, def, x, feetY);
+    case 'gardenerShellcracker':
+      return new GardenerShellcracker(scene, def, x, feetY);
+    case 'thunderRaider':
+      return new ThunderRaider(scene, def, x, feetY);
     case 'shellcracker':
     default:
       return new Shellcracker(scene, def, x, feetY);

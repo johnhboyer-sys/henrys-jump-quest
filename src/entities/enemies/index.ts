@@ -6,8 +6,10 @@ import { FireFoe } from './FireFoe';
 import { SnappyTurtle } from './SnappyTurtle';
 import { Butterfly } from './Butterfly';
 import { Kitty } from './Kitty';
+import { WaterGuy } from './WaterGuy';
+import { PoisonFlower } from './PoisonFlower';
 
-export { Enemy, Mushroom, FireFoe, SnappyTurtle, Butterfly, Kitty };
+export { Enemy, Mushroom, FireFoe, SnappyTurtle, Butterfly, Kitty, WaterGuy, PoisonFlower };
 export { ELITE } from './Enemy';
 export type { EnemyWorld } from './Enemy';
 
@@ -24,5 +26,9 @@ export function createEnemy(scene: Phaser.Scene, spawn: EnemySpawn, elite = fals
       return new Butterfly(scene, spawn, elite);
     case 'kitty':
       return new Kitty(scene, spawn, elite);
+    case 'waterGuy':
+      return new WaterGuy(scene, spawn, elite);
+    case 'poisonFlower':
+      return new PoisonFlower(scene, spawn, elite);
   }
 }

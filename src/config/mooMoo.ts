@@ -28,6 +28,7 @@ export function mooMooArena(bossId: string): LevelDef {
       { x: 700, y: 460, w: 200, h: 24, kind: 'platform' },
       { x: 1400, y: 460, w: 200, h: 24, kind: 'platform' },
       { x: 1050, y: 320, w: 200, h: 24, kind: 'platform' },
+      ...(bossId === 'gardenerShellcracker' ? [{ x: 1340, y: 550, w: 190, h: 24, kind: 'platform' as const }] : []), // placeholder: not Henry's number; reachable shot line through wall gap
     ],
     enemies: [],
     blocks: [

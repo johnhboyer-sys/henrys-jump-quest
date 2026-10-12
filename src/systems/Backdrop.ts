@@ -18,6 +18,9 @@ export function buildBackdrop(scene: Phaser.Scene, level: LevelDef): void {
     case 'shore':
       shoreBackdrop(scene, w);
       break;
+    case 'storm':
+      stormBackdrop(scene, w);
+      break;
     case 'galactic':
       galacticBackdrop(scene, w);
       break;
@@ -235,4 +238,15 @@ function galacticBackdrop(scene: Phaser.Scene, w: number): void {
   // Distant crags along the bottom, so the floor has something behind it.
   jaggedRidge(scene, w, 0x1a1338, 600, 190, 170, 0.3, -80);
   jaggedRidge(scene, w, 0x2a1f56, 650, 130, 130, 0.55, -75);
+}
+
+/** Grey sky and slow rain behind the playable space. */
+function stormBackdrop(scene: Phaser.Scene, w: number): void {
+  sky(scene, [[0x252e42, 0], [0x38475e, 0], [0x566779, 0], [0x778895, 0]]); // placeholder: not Henry's number
+  puffyClouds(scene, w, 18, 0.18, 0.25); // placeholder: not Henry's number
+  humps(scene, w, 0x273948, 550, 130, 200, 0.45, -80); // placeholder: not Henry's number
+  const rain = scene.add.graphics().setScrollFactor(0).setDepth(-60);
+  rain.lineStyle(2, 0xaac5df, 0.25); // placeholder: not Henry's number
+  for (let i = 0; i < 90; i++) { const x = (i * 173) % VIEW.width; const y = (i * 97) % VIEW.height; rain.lineBetween(x, y, x - 6, y + 18); } // placeholder: not Henry's number
+  scene.tweens.add({ targets: rain, y: VIEW.height, duration: 6000, repeat: -1, onRepeat: () => rain.setY(-VIEW.height) }); // placeholder: not Henry's number
 }

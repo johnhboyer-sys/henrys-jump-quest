@@ -80,7 +80,7 @@ export abstract class BossBase extends Phaser.Physics.Arcade.Sprite {
     // Stomps and other ordinary attacks never hurt a boss. On a power-up-only
     // boss we say so out loud, because that is a rule the player must learn.
     if (source === 'primrose' && !this.def.primroseOnly) return false;
-    if (source !== 'primrose' && this.def.primroseOnly) return false;
+    if (source !== 'primrose' && this.def.primroseOnly) { this.noteImmune(); return false; }
     if (source === 'stomp') {
       if (this.def.powerUpOnly) this.noteImmune();
       return false;
@@ -123,7 +123,7 @@ export abstract class BossBase extends Phaser.Physics.Arcade.Sprite {
     const now = this.scene.time.now;
     if (now - this.lastImmuneNoteAt < 1200) return;
     this.lastImmuneNoteAt = now;
-    this.floatText('POWER-UPS ONLY!', '#9fd8f0');
+    this.floatText(this.def.primroseOnly ? 'PRIMROSE ONLY!' : 'POWER-UPS ONLY!', '#9fd8f0');
   }
 
   protected onEnrage(): void {

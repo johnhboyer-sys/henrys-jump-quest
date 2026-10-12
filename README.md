@@ -1,7 +1,7 @@
 # Jump Quest
 
 A 2D side-scrolling platformer built from Henry and Tom's brainstorm.
-Eleven levels, five enemies, seven power-ups, five bosses, twelve playable
+Sixteen levels, seven enemies, seven power-ups, seven bosses, twelve playable
 skins, two difficulty modes and a bonus rematch hole.
 
 ## Run it
@@ -102,7 +102,7 @@ jump, and body size, and some carry an attack on **E**.
 
 James's run speed genuinely overshoots — Henry was warned and kept it anyway.
 Shellcracker's costume also walks backwards, at 160, when you hold Left and
-Right together (everyone else just stands still). The existing bosses ignore E attacks. A future boss can opt into Primrose shots.
+Right together (everyone else just stands still). The first five bosses ignore E attacks. Gardener Shellcracker and Thunder Raider take Primrose shots only.
 
 **Dying** — you get 5 lives per attempt, plus any 1-UPs you have banked. A death
 puts you back on the last ground you stood on safely, so it costs you a few
@@ -236,6 +236,9 @@ shots; a later boss can opt in with `primroseOnly` in its `BossDef`.
 - **Kitty** — patrols, then dashes at you when you come close. Its scratch
   takes an eighth of your health (13 of Tom's 100). Stompable.
 
+- **Water Guy** — a hopping blue droplet with 25 HP. Its water shot deals 8 HP. Only Primrose lightning hurts it; star touch, stomps, throws and other attacks leave it alive.
+- **Poison Flower** — a still flower with 25 HP. Only fire hurts it: Primrose fire or the Fireball power-up. Its poison shot deals 8 HP as four 2 HP ticks, one each second. A new shot starts the four ticks again. Green tint marks poison. It ends at death, respawn or level end.
+
 **Hazards** — rings of icicles spinning on a fixed point. Touching one takes
 5 HP and freezes you briefly.
 
@@ -264,6 +267,43 @@ will finish you.
 Big HP numbers are for show. What actually sets fight length is `hitsToKill` in
 `config/bosses.ts`: each landed power-up hit removes `maxHp / hitsToKill`, so a
 10,000 HP boss and a 1,000 HP boss both die in a sensible number of hits.
+
+**Gardener Shellcracker** guards level 14. It needs 17 Primrose hits. It calls Butterflies, Water Guys and Poison Flowers, rains water from above, and grows plant walls. Fire breaks a wall after three hits; lightning does not. Each wall leaves a gap aligned with a reachable ledge, so a Primrose shot can always reach the boss. All attacks show a warning. Its minions use the eight enemy cap.
+
+**Thunder Raider** guards level 16. It needs 18 Primrose hits. It floats through the heights that floor and ledge shots can reach. It calls Water Guys, sends a rain cloud after the player, and marks three ground strikes one second before they land. The cloud lasts five seconds. Each boss grows more fierce below half health.
+
+### Levels
+
+| ID | Name | Type |
+| --- | --- | --- |
+| 1 | Green Hills | Platforming |
+| 2 | Frostfire Caves | Platforming |
+| 3 | Shellcracker's Shore | Boss |
+| 4 | The Star Road | Platforming |
+| 5 | Raider of the Void | Boss |
+| 6 | Kitty Meadows | Platforming |
+| 7 | Frozen Falls | Platforming |
+| 8 | Mom's Beach House | Boss |
+| 9 | The Impossible Climb | Platforming |
+| 10 | Kitty Raider's Lair | Boss |
+| 11 | Boo Boo Bot's Base | Boss |
+| 12 | Primrose Gardens | Platforming |
+| 13 | Puddle Path | Platforming |
+| 14 | The Gardener's Greenhouse | Boss |
+| 15 | Stormy Heights | Platforming |
+| 16 | Thunder Raider's Sky | Boss |
+
+Levels 12–16 bring the two new enemies. Levels 15–16 use a grey storm sky. If you start one of these levels without Primrose and have her skin, the game shows an ESC skin switch hint. The Moo Moo Hole offers each new boss once beaten. For either Primrose-only rematch, it lends Primrose for that fight.
+
+### Placeholders for levels 12–16
+
+All new positions, layout sizes, art shapes, and level names are placeholders. So are the choices below; the new code marks chosen numbers with `// placeholder: not Henry's number`.
+
+- **Water Guy:** Fire Foe's 12 touch damage, 90 speed, 44×50 body, 520 range, 1700ms shot gap, 340 shot speed, 2400ms shot life, and 70 score. Elite copies use the old threefold HP, 50 touch damage and 1.35 speed scale.
+- **Poison Flower:** 12 touch damage, 44×50 body, 520 range, 2100ms shot gap, 240ms warning, 300 shot speed, 2600ms shot life and 70 score. Poison splits Henry's 8 into four ticks of 2, one per second; hits restart the timer.
+- **Gardener:** 1700 display HP, 160×130 body, 15 touch damage, 2300ms attack gap, 950ms warning, half HP enrage, three attack rotation, 700ms attack hold. Its rain lasts 3.5s; drops spawn every 260ms, deal 4 damage and fall at 380 speed. Walls stand 190px to either side, with a 55px gap at ledge height; each takes three fire hits. The rematch gains a ledge at x1340, y550.
+- **Thunder Raider:** Primrose-only rule, 1800 display HP, 160×100 body, 18 touch damage, 2200ms attack gap, 950ms warning, 100 move speed, half HP enrage, three attack rotation and 700ms attack hold. It floats around y575 with a 45px rise and fall. It calls two Water Guys 350px to either side. The chase cloud lasts 5s, tracks at 30% of the gap per rain tick, and drops 4 damage water at 380 speed. Three strikes each deal 15 damage, warn for 1s, start 700ms apart, and use a 70px mark.
+- **Feedback and hint:** immune notes wait 550ms between displays and fade over 750ms; the hint waits 450ms after entry. The storm backdrop's bands, clouds and rain are art choices.
 
 ## Decisions the brief left open
 
