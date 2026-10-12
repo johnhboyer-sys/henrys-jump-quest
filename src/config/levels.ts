@@ -967,7 +967,7 @@ const LEVEL_12: LevelDef = { // placeholder: not Henry's number
   ],
   blocks: [{ x: 360, y: 390, contains: 'fireball' }, { x: 920, y: 280, contains: 'heart' }, { x: 1800, y: 370, contains: 'fireball' }, { x: 3320, y: 260, contains: 'fireball' }, { x: 4500, y: 350, contains: 'heart' }], // placeholder: not Henry's number
   coins: [...coinArc(260, 560, 5), ...coinRow(850, 340, 4), ...coinArc(1400, 560, 5), ...coinRow(2100, 340, 4), ...coinArc(2760, 560, 5), ...coinRow(3330, 330, 4), ...coinArc(4080, 560, 5), ...coinRow(4790, 330, 4)], // placeholder: not Henry's number
-  icicles: [], checkpoints: [{ x: 1250, y: FLOOR_Y }, { x: 2600, y: FLOOR_Y }, { x: 4020, y: FLOOR_Y }], goal: { x: 5340, y: FLOOR_Y }, // placeholder: not Henry's number
+  icicles: [], checkpoints: [{ x: 1250, y: FLOOR_Y }, { x: 2600, y: FLOOR_Y }, { x: 4260, y: FLOOR_Y }], goal: { x: 5340, y: FLOOR_Y }, // placeholder: not Henry's number
 };
 
 const LEVEL_13: LevelDef = { // placeholder: not Henry's number
@@ -985,7 +985,7 @@ const LEVEL_13: LevelDef = { // placeholder: not Henry's number
   ],
   blocks: [{ x: 480, y: 370, contains: 'fireball' }, { x: 1580, y: 280, contains: 'fireball' }, { x: 2760, y: 260, contains: 'heart' }, { x: 3940, y: 270, contains: 'fireball' }, { x: 5160, y: 250, contains: 'fireball' }], // placeholder: not Henry's number
   coins: [...coinArc(280, 560, 5), ...coinRow(800, 330, 4), ...coinArc(1040, 560, 5), ...coinRow(1550, 340, 4), ...coinArc(2170, 560, 5), ...coinRow(2770, 330, 4), ...coinArc(3400, 560, 5), ...coinRow(3950, 330, 4), ...coinArc(4540, 560, 5), ...coinRow(5150, 320, 4)], // placeholder: not Henry's number
-  icicles: [], checkpoints: [{ x: 870, y: FLOOR_Y }, { x: 2130, y: FLOOR_Y }, { x: 3300, y: FLOOR_Y }, { x: 4450, y: FLOOR_Y }], goal: { x: 5740, y: FLOOR_Y }, // placeholder: not Henry's number
+  icicles: [], checkpoints: [{ x: 870, y: FLOOR_Y }, { x: 2330, y: FLOOR_Y }, { x: 3540, y: FLOOR_Y }, { x: 4680, y: FLOOR_Y }], goal: { x: 5740, y: FLOOR_Y }, // placeholder: not Henry's number
 };
 
 const LEVEL_14: LevelDef = { // placeholder: not Henry's number
@@ -1014,7 +1014,7 @@ const LEVEL_15: LevelDef = { // placeholder: not Henry's number
   ],
   blocks: [{ x: 450, y: 360, contains: 'fireball' }, { x: 1500, y: 280, contains: 'heart' }, { x: 2520, y: 260, contains: 'fireball' }, { x: 3630, y: 250, contains: 'fireball' }, { x: 4670, y: 260, contains: 'heart' }, { x: 5400, y: 260, contains: 'fireball' }], // placeholder: not Henry's number
   coins: [...coinArc(260, 560, 5), ...coinRow(700, 330, 4), ...coinArc(960, 560, 5), ...coinRow(1410, 350, 4), ...coinArc(1960, 560, 5), ...coinRow(2500, 330, 4), ...coinArc(3030, 560, 5), ...coinRow(3580, 320, 4), ...coinArc(4100, 560, 5), ...coinRow(4640, 330, 4), ...coinArc(5080, 560, 5), ...coinRow(5370, 330, 4)], // placeholder: not Henry's number
-  icicles: [], checkpoints: [{ x: 780, y: FLOOR_Y }, { x: 1880, y: FLOOR_Y }, { x: 2960, y: FLOOR_Y }, { x: 4010, y: FLOOR_Y }, { x: 4990, y: FLOOR_Y }], goal: { x: 6140, y: FLOOR_Y }, // placeholder: not Henry's number
+  icicles: [], checkpoints: [{ x: 780, y: FLOOR_Y }, { x: 2100, y: FLOOR_Y }, { x: 3170, y: FLOOR_Y }, { x: 4240, y: FLOOR_Y }, { x: 5210, y: FLOOR_Y }], goal: { x: 6140, y: FLOOR_Y }, // placeholder: not Henry's number
 };
 
 const LEVEL_16: LevelDef = { // placeholder: not Henry's number

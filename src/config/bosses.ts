@@ -152,7 +152,7 @@ export const THUNDER_RAIDER: BossDef = {
   id: 'thunderRaider', kind: 'thunderRaider', name: 'Thunder Raider',
   title: 'Storm Over the Sky', // placeholder: not Henry's number
   texture: 'boss-thunder', hp: 1800, // placeholder: not Henry's number
-  hitsToKill: 18, bodyWidth: 160, bodyHeight: 100, // placeholder: not Henry's number (body size)
+  hitsToKill: 18, bodyWidth: 160, bodyHeight: 130, // placeholder: not Henry's number (body size)
   touchDamage: 18, attackIntervalMs: 2200, telegraphMs: 950, walkSpeed: 100, // placeholder: not Henry's number
   powerUpOnly: true, primroseOnly: true, enrageAt: 0.5, clearMinionsOnDeath: true, // placeholder: not Henry's number (enrage threshold)
 };

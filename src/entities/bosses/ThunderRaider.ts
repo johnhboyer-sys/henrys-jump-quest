@@ -7,7 +7,8 @@ export class ThunderRaider extends BossBase {
   private anchorY: number;
   constructor(scene: Phaser.Scene, def: BossDef, x: number, y: number) {
     super(scene, def, x, y);
-    this.anchorY = y - 65; // placeholder: not Henry's number
+    // Low enough that floor shots land most of the time, ledge shots always.
+    this.anchorY = y - 25; // placeholder: not Henry's number
     (this.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
     this.setY(this.anchorY);
     (this.body as Phaser.Physics.Arcade.Body).reset(x, this.anchorY);
@@ -20,7 +21,7 @@ export class ThunderRaider extends BossBase {
   override preUpdate(time: number, delta: number): void {
     super.preUpdate(time, delta);
     if (!this.active || this.isDead || this.scene.time.paused) return;
-    (this.body as Phaser.Physics.Arcade.Body).setVelocityY((this.anchorY + Math.sin(time / 750) * 45 - this.y) * 3); // placeholder: not Henry's number
+    (this.body as Phaser.Physics.Arcade.Body).setVelocityY((this.anchorY + Math.sin(time / 750) * 25 - this.y) * 3); // placeholder: not Henry's number
   }
   protected pickAttack(): string { return ['summon', 'cloud', 'lightning'][this.turn++ % 3]; } // placeholder: not Henry's number
   protected telegraphFor(name: string): TelegraphSpec {

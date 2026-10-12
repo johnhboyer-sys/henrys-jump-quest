@@ -404,7 +404,8 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       });
     }
     if (this.boss) {
-      this.physics.add.collider(this.boss, this.solids);
+      // The Thunder Raider floats; ledges would pen it in instead of letting it follow.
+      if (this.boss.def.kind !== 'thunderRaider') this.physics.add.collider(this.boss, this.solids);
       this.physics.add.overlap(this.player, this.boss, () => this.onBossTouch());
       // Boss first: Phaser hands a sprite-vs-group callback the sprite as the
       // first argument regardless of the order they were passed in.
@@ -886,7 +887,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
   private startPoison(fromBoss: boolean): void {
     const blocked = () => this.player.isInvincible || (this.player.hasGodStar && !fromBoss);
-    if (!this.player.isAlive || blocked()) return;
+    if (!this.player.isAlive || this.player.isInvulnerable || blocked()) return;
     this.stopPoison();
     this.poisonTicks = 4; // placeholder: not Henry's number
     this.player.setTint(0x76d957);
@@ -949,9 +950,9 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (!this.plantWalls) return;
     for (const offset of [-190, 190]) { // placeholder: not Henry's number
       const parts = [
-        this.add.rectangle(x + offset, 600, 34, 80, 0x388a43).setDepth(18),
-        this.add.rectangle(x + offset, 427, 34, 155, 0x388a43).setDepth(18),
-      ]; // placeholder: not Henry's number; gap from y 505 to 560, level 14 ledges at y 550
+        this.add.rectangle(x + offset, 602, 34, 76, 0x388a43).setDepth(18),
+        this.add.rectangle(x + offset, 422, 34, 146, 0x388a43).setDepth(18),
+      ]; // placeholder: not Henry's number; gap from y 495 to 564 (room for a shot fired mid-hop), level 14 ledges at y 550
       for (const part of parts) { this.plantWalls.add(part); (part.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject(); }
       this.wallPieces.push({ parts, hp: 3 }); // placeholder: not Henry's number
     }
