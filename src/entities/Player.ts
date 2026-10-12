@@ -391,7 +391,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   /** Returns true if the hit actually landed (i.e. not blocked by i-frames). */
   takeDamage(amount: number, fromX?: number, bossDamage = false): boolean {
-    if ((!bossDamage && (this.isInvincible || this.hasGodStar)) || (bossDamage && this.isInvincible && !this.hasGodStar) || this.isInvulnerable || !this.isAlive) return false;
+    // A real Star or Mushroom blocks everything; a god skin's own star blocks
+    // everything except bosses.
+    if (this.isInvincible || (this.hasGodStar && !bossDamage) || this.isInvulnerable || !this.isAlive) return false;
     this.hp = Math.max(0, this.hp - amount);
     this.invulnUntil = this.scene.time.now + PLAYER.invulnMs;
 

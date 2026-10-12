@@ -116,7 +116,8 @@ export class GalacticRaider extends BossBase {
         if (!this.active) return;
         const kind = kinds[(this.orderIndex + i) % kinds.length];
         const side = i % 2 === 0 ? -1 : 1;
-        this.world.spawnMinion(kind, this.x + side * Phaser.Math.Between(180, 340));
+        // The owner marks the minions' shots as boss shots, so they still hurt God Tom.
+        this.world.spawnMinion(kind, this.x + side * Phaser.Math.Between(180, 340), { owner: this });
       });
     }
     this.floatText('MINIONS!', '#9ff0c0');

@@ -618,6 +618,10 @@ export class UIScene extends Phaser.Scene {
         switchMsg?.setText(
           result.ok ? `Now wearing ${SKINS[skinId].label}.` : (result.reason ?? "Can't switch."),
         );
+        if (result.ok) {
+          save.skin = skinId;
+          showPage();
+        }
       };
 
       // Keys 1-6 pick the shown page; - and = turn pages. Touch uses the

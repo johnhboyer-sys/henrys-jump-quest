@@ -793,6 +793,8 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
   private onPlayerTouchEnemy(enemy: Enemy): void {
     if (!enemy.active || !this.player.isAlive) return;
+    // God Tom's own throw can graze him on the way out; it must keep flying.
+    if (this.thrownEnemies.has(enemy)) return;
 
     // A star or the god mushroom clears anything it touches, instantly.
     if (this.player.isInvincible || this.player.hasGodStar) {
@@ -842,7 +844,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
   private onPlayerShot(shot: Projectile): void {
     if (!shot.active || !this.player.isAlive) return;
-    if ((this.player.isInvincible && !(this.player.hasGodStar && shot.bossShot)) || (this.player.hasGodStar && !shot.bossShot)) {
+    if (this.player.isInvincible || (this.player.hasGodStar && !shot.bossShot)) {
       shot.pop();
       return;
     }
@@ -850,7 +852,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     const status = shot.status;
     shot.pop();
 
-    if (status === 'poison') { this.startPoison(); return; }
+    if (status === 'poison') { this.startPoison(shot.bossShot); return; }
     if (this.player.takeDamage(damage, shot.x, shot.bossShot)) {
       if (status === 'slow') this.player.applyStatus('slow');
       if (status === 'stuck') this.player.applyStatus('stuck');
@@ -882,15 +884,16 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.tweens.add({ targets: note, y: note.y - 35, alpha: 0, duration: 750, onComplete: () => note.destroy() }); // placeholder: not Henry's number
   }
 
-  private startPoison(): void {
-    if (!this.player.isAlive || this.player.isInvincible || this.player.hasGodStar) return;
+  private startPoison(fromBoss: boolean): void {
+    const blocked = () => this.player.isInvincible || (this.player.hasGodStar && !fromBoss);
+    if (!this.player.isAlive || blocked()) return;
     this.stopPoison();
     this.poisonTicks = 4; // placeholder: not Henry's number
     this.player.setTint(0x76d957);
     this.poisonTimer = this.time.addEvent({ delay: 1000, repeat: 3, callback: () => { // placeholder: not Henry's number
       if (this.finished || !this.player.isAlive) { this.stopPoison(); return; }
       this.poisonTicks -= 1;
-      if (!this.player.isInvincible && !this.player.hasGodStar) {
+      if (!blocked()) {
         this.player.hp = Math.max(0, this.player.hp - 2); // placeholder: not Henry's number
         play('hurt'); this.emitHud(); this.checkDeath();
       }
@@ -987,7 +990,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       const now = this.time.now;
       if (now - this.bossContactAt > 600) {
         this.bossContactAt = now;
-        const source: HitSource = this.player.hasGodStar || this.player.form === 'star' ? 'star' : 'mushroom';
+        const source: HitSource = this.player.form === 'mushroom' ? 'mushroom' : 'star';
         play('stomp');
         if (this.boss.hit(source)) this.defeatBoss();
         this.emitHud();
