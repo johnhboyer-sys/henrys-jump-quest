@@ -31,6 +31,8 @@ export interface BossDef {
   walkSpeed: number;
   /** Only power-up attacks can hurt it; stomps and everything else bounce off. */
   powerUpOnly: boolean;
+  /** Future bosses can require Primrose's elemental shots. No current boss sets this. */
+  primroseOnly?: boolean;
   /** HP fraction below which it gets faster and angrier. */
   enrageAt: number;
   /** On death, every minion this boss spawned is cleared out with it. */

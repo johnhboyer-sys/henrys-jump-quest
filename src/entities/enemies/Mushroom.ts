@@ -59,6 +59,7 @@ export class Mushroom extends Enemy {
     const vy = -260 - Math.min(200, Math.abs(dx) * 0.28);
 
     this.world.shoot(this.x, this.y - this.def.bodyHeight * 0.9, {
+        bossShot: this.owner !== undefined,
       texture: spore.texture,
       damage: spore.damage,
       vx,

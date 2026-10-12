@@ -93,6 +93,7 @@ export class KittyRaider extends BossBase {
         const spread = (i - (count - 1) / 2) * 0.22;
         const angle = base + spread;
         this.world.shoot(this.x + dir * 50, this.y - 100, {
+          bossShot: true,
           texture: furball.texture,
           damage: furball.damage,
           vx: Math.cos(angle) * furball.speed,
@@ -128,6 +129,7 @@ export class KittyRaider extends BossBase {
 
     const scratch = ENEMY_PROJECTILE.scratch;
     this.world.shoot(x, y, {
+          bossShot: true,
       texture: scratch.texture,
       damage: scratch.damage,
       vx: 0,

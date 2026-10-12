@@ -107,7 +107,7 @@ export const SCORE = {
   hpBonusPerPoint: 5,
 } as const;
 
-/** Coins, which Boo Mommy Bag's shop spends. Henry's numbers. */
+/** Coins, which the Llama Trader's shop spends. Henry's numbers. */
 export const COIN_REWARD = {
   enemyKill: 2,
   boss: 300,
@@ -133,7 +133,7 @@ export const KITTY_SUIT = {
 
 /** God Tom: kill-stacking stat gain, and picking up/throwing ordinary enemies. */
 export const GOD_TOM = {
-  price: 10000, // Henry's number
+  price: 1000, // Henry's number
   /** Henry's number: 9 seconds per stack. */
   stackDurationMs: 9000,
   /** What "the enemy's stats" means: full max HP, and this fraction of its speed. */

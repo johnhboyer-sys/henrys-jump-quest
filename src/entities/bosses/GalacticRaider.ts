@@ -56,6 +56,7 @@ export class GalacticRaider extends BossBase {
         const spread = (i - (count - 1) / 2) * 0.16;
         const angle = base + spread;
         this.world.shoot(this.x + dir * 50, this.y - 120, {
+          bossShot: true,
           texture: 'proj-galactic',
           // Far beyond any health total: this is an instant kill by design.
           damage: 999,
@@ -94,6 +95,7 @@ export class GalacticRaider extends BossBase {
 
     // The arc itself is decoration; this stationary hitbox is what bites.
     this.world.shoot(x, y, {
+          bossShot: true,
       texture: 'sword-hit',
       damage: 999,
       vx: 0,

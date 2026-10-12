@@ -6,7 +6,7 @@ import type { EnemyWorld } from '../enemies';
 export type BossMode = 'idle' | 'walk' | 'telegraph' | 'attack' | 'recover' | 'dead';
 
 /** Where a hit on a boss came from. Decides whether it counts at all. */
-export type HitSource = 'fire' | 'stomp' | 'mushroom' | 'star';
+export type HitSource = 'fire' | 'stomp' | 'mushroom' | 'star' | 'primrose';
 
 export interface TelegraphSpec {
   label: string;
@@ -79,6 +79,8 @@ export abstract class BossBase extends Phaser.Physics.Arcade.Sprite {
 
     // Stomps and other ordinary attacks never hurt a boss. On a power-up-only
     // boss we say so out loud, because that is a rule the player must learn.
+    if (source === 'primrose' && !this.def.primroseOnly) return false;
+    if (source !== 'primrose' && this.def.primroseOnly) return false;
     if (source === 'stomp') {
       if (this.def.powerUpOnly) this.noteImmune();
       return false;

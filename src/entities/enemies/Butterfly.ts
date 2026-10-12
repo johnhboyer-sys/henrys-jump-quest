@@ -55,6 +55,7 @@ export class Butterfly extends Enemy {
     const drop = ENEMY_PROJECTILE.rain;
     for (const offset of [-18, 18]) {
       this.world.shoot(this.x + offset, this.y + 6, {
+        bossShot: this.owner !== undefined,
         texture: drop.texture,
         damage: drop.damage,
         vx: 0,

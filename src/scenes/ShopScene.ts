@@ -1,14 +1,14 @@
 import Phaser from 'phaser';
 import { VIEW } from '../config/game';
 import { BOO_STOCK, BOB_STOCK, type ShopItem } from '../config/shop';
-import { loadSave, buyItem, blockedReason, type SaveData } from '../systems/SaveSystem';
+import { loadSave, buyItem, blockedReason, hasBeatenGame, type SaveData } from '../systems/SaveSystem';
 import { play } from '../systems/SoundSystem';
 
 const FONT = 'monospace';
 
 type Merchant = 'boo' | 'bob';
 
-/** Boo Mommy Bag's or Big Bob's shop. Opened from the level-clear card. */
+/** The Llama Trader's or Big Bob's shop. Opened from the level-clear card. */
 export class ShopScene extends Phaser.Scene {
   private nextLevelId: number | null = null;
   private merchant: Merchant = 'boo';
@@ -62,7 +62,7 @@ export class ShopScene extends Phaser.Scene {
     }
 
     this.add
-      .text(440, 90, this.merchant === 'bob' ? "BIG BOB'S SHOP" : "BOO MOMMY BAG'S SHOP", {
+      .text(440, 90, this.merchant === 'bob' ? "BIG BOB'S SHOP" : "THE LLAMA TRADER'S SHOP", {
         fontFamily: FONT,
         fontSize: '40px',
         color: '#ffe27a',
@@ -75,8 +75,8 @@ export class ShopScene extends Phaser.Scene {
       .text(440, 132, '', { fontFamily: FONT, fontSize: '22px', color: '#ffd76b' })
       .setOrigin(0.5);
 
-    const rowTop = 172;
-    const rowGap = 40;
+    const rowTop = 160; // placeholder: not Henry's number
+    const rowGap = 36; // placeholder: not Henry's number
     this.stock.forEach((item, i) => {
       const y = rowTop + i * rowGap;
       this.add.image(90, y, item.texture).setScale(0.7);
@@ -93,7 +93,7 @@ export class ShopScene extends Phaser.Scene {
     });
 
     this.detailText = this.add
-      .text(440, rowTop + this.stock.length * rowGap + 26, '', {
+      .text(440, rowTop + this.stock.length * rowGap + 6, '', { // placeholder: not Henry's number
         fontFamily: FONT,
         fontSize: '17px',
         color: '#9fd8f0',
@@ -187,7 +187,9 @@ export class ShopScene extends Phaser.Scene {
   /** What you already have waiting, so a kid can see the buy went through. */
   private suffix(save: SaveData, item: ShopItem): string {
     if (item.kind === 'skin') {
-      if (save.ownedSkins.includes(item.skin)) return '  (owned)';
+      if (save.ownedSkins.includes(item.skin) || (item.skin === 'godTom' && save.ownedSkins.includes('godHenry'))) return '  (owned)';
+      if (item.skin === 'primrose' && save.clearedLevel >= 11) return '  (free)';
+      if (item.skin === 'godTom' && hasBeatenGame(save)) return '  (free)';
       const left = save.skinRentals[item.skin] ?? 0;
       if (left > 0) return `  (${left} levels left)`;
       return '';

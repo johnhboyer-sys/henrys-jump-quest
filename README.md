@@ -1,7 +1,7 @@
 # Jump Quest
 
 A 2D side-scrolling platformer built from Henry and Tom's brainstorm.
-Eleven levels, five enemies, seven power-ups, five bosses, eight playable
+Eleven levels, five enemies, seven power-ups, five bosses, twelve playable
 skins, two difficulty modes and a bonus rematch hole.
 
 ## Run it
@@ -26,7 +26,7 @@ and open the "Network" URL it prints on the device instead of `localhost`.
 | ↓ | Use the power-up you are holding (S also works); on the Moo Moo Hole, enters it instead |
 | E | Your skin's attack, if it has one (see Skins below) |
 | H | Nurse only: spend 20 coins to heal to full |
-| ESC | Pause (Q from the pause card leaves the level; number keys switch skin, if the mid-level switch is turned on) |
+| ESC | Pause (Q from the pause card leaves the level; 1–6 switch skin on the shown page; - and = turn pages, if the mid-level switch is on) |
 | Shift+R | Restart the level |
 | ← → | Normal / Nearly Impossible (menu screen) |
 | S | Cycle skins (menu screen) |
@@ -38,7 +38,7 @@ The keyboard works exactly as above; a touch device (or a desktop browser
 with `?touch=1` on the URL, for testing) also gets on-screen circular buttons
 drawn over the game — Left/Right, Jump (hold for a higher jump, same as the
 keyboard), Down (use the held power-up, or enter the Moo Moo Hole), Attack
-(only shown for a skin with an E attack, or God Tom's pick-up/throw), Heal
+(shown for an E attack, Primrose, or either god skin's pick-up/throw), Heal
 (Nurse only) and Pause. Every card the game can show — the pause card, level
 clear, game over, the hole's win/lose card, the shop and the hole's boss
 picker — also gets big tappable buttons doing the same thing as their
@@ -89,16 +89,20 @@ jump, and body size, and some carry an attack on **E**.
 | --- | --- | --- | --- | --- | --- |
 | Tom | free | 100 | 320 | -760 | — |
 | Henry | free | 100 | 320 | -760 | — |
-| James | Boo: rent 20 coins / 3 levels, or 1000 forever | 90 | 1000 | -760 | — |
-| Nurse | Boo: rent 100 coins / 20 levels, or 1000 forever | 100 | 320 | -760 | purse swing, 20 dmg, never hurts bosses |
+| James | Llama Trader: rent 20 coins / 3 levels, or 1000 forever | 90 | 1000 | -760 | — |
+| Nurse | Llama Trader: rent 100 coins / 20 levels, or 1000 forever | 100 | 320 | -760 | purse swing, 20 dmg, never hurts bosses |
 | Tiny Guy | free forever once you beat the Galactic Raider (level 5) | 100 | 370 | -820 | hammer swing, 30 dmg |
 | Shellcracker | Big Bob: 100 coins forever, once you have beaten him; also free to wear while replaying level 3 | 100 | 320 | -760 | backside fire, 50 dmg |
-| Galactic Raider | Big Bob: 100 coins forever, once you have beaten him; also free to wear while replaying level 5 | 100 | 320 | -760 | star sword — a quarter of a target's own max HP per hit, so any ordinary enemy or minion dies in 4 hits |
+| Galactic Raider | Big Bob: 100 coins forever, after level 5 | 100 | 320 | -760 | star sword — a quarter of an enemy's max HP per hit |
+| Shellcracker's Mom | Big Bob: 100 coins forever, after level 8 | 100 | 320 | -760 | — |
+| Shellcracker's Dad | Big Bob: 100 coins forever, after level 11 | 100 | 320 | -760 | — |
+| God Tom | Llama Trader: 1000 coins for both god skins; both free after the last level | 100 | 320 | -760 | pick up / throw |
+| God Henry | same unlock as God Tom | 100 | 320 | -760 | pick up / throw |
+| Primrose | Llama Trader: 500 coins; free after level 11 | 100 | 320 | -760 | alternating lightning and fireball |
 
 James's run speed genuinely overshoots — Henry was warned and kept it anyway.
 Shellcracker's costume also walks backwards, at 160, when you hold Left and
-Right together (everyone else just stands still). No E attack ever damages a
-boss, whatever it does to ordinary enemies.
+Right together (everyone else just stands still). The existing bosses ignore E attacks. A future boss can opt into Primrose shots.
 
 **Dying** — you get 5 lives per attempt, plus any 1-UPs you have banked. A death
 puts you back on the last ground you stood on safely, so it costs you a few
@@ -130,8 +134,8 @@ next level** — every level starts you plain, unless you bought one in the shop
 **Coins and the shop** — coins come from the level, from ? blocks (a power-up
 block has a 50% chance of 4 coins as well as its power-up), 2 for every enemy
 you kill and 300 for beating a boss. They go in the bank when you finish a
-level. After every normal level **Boo Mommy Bag** turns up on the level-clear
-card with her two llamas; after a **boss** level, **Big Bob** — a teddy bear
+level. After every normal level **The Llama Trader** turns up on the level-clear
+card with his two beige llamas; after a **boss** level, **Big Bob** — a teddy bear
 "bigger than everything on screen" — turns up instead, with five llamas of his
 own (Henry claims he has "twelve hundred"; that part is a joke). Click either
 to shop:
@@ -146,12 +150,13 @@ to shop:
 | James (forever) | 1000 | own James for good |
 | Nurse (rent) | 100 | wear the Nurse for the next 20 levels |
 | Nurse (forever) | 1000 | own the Nurse for good |
-| God Tom | 10,000 | own God Tom for good — listed from the start as a goal |
+| Primrose | 500 | own Primrose early; free once level 11 is clear |
+| God Tom + God Henry | 1000 | own both god skins; free after the last level |
 
-Big Bob only sells Shellcracker and Galactic Raider, and only once you have
-beaten the boss in question — 100 coins each, forever. God Tom is Boo's, not
-Big Bob's, and is free the moment you have beaten the last level, whatever it
-costs — see God Tom, below.
+Big Bob sells Shellcracker, Galactic Raider, Shellcracker's Mom and
+Shellcracker's Dad after each matching boss is beaten — 100 coins each,
+forever. The Llama Trader sells the god pair and Primrose. The trader name
+is a placeholder until Henry names him.
 
 A bought Star or Mushroom comes back if you fall down a pit. A skin rental
 counts down by one level every time you finish a level, whichever skin you
@@ -160,8 +165,8 @@ skin you already own, or already have rented, is refused — nothing is sold
 twice here either.
 
 **Switching skins mid-level** — behind `SKINS_CONFIG.switchMidLevel` in
-`src/config/skins.ts` (on by default). With it on, the pause card lists every
-skin available to you, numbered; press a number to switch on the spot. It
+`src/config/skins.ts` (on by default). With it on, the pause card shows six available skins per page. Press 1–6 or tap a row
+to switch; - and = or the PREV/NEXT touch buttons turn pages. It
 refuses if the new body would not fit where you are standing (Tiny Guy ducking
 somewhere Tom cannot fit, say). John asked for this over Henry's objection
 that it is "cheating" — flip the flag off to remove it without ripping the
@@ -185,13 +190,19 @@ no `recordLevelClear`, just a small "YOU BEAT IT!" card before you return.
 Losing all your lives in the hole sends you back to the level's own start,
 no re-lock penalty.
 
-**God Tom** — Boo's, not Big Bob's: listed in the shop from the very start,
-10,000 coins, so it is a visible goal from the first time you open the shop.
-Once `clearedLevel` reaches the last level in `LEVELS` he unlocks by himself,
-like Tiny Guy after level 5 — no trip to the shop needed. Buying him owns him
-forever. Base stats are Tom's.
+**God Tom and God Henry** — sold together by the Llama Trader from the start,
+1000 coins, so it is a visible goal from the first time you open the shop.
+Once `clearedLevel` reaches the last level in `LEVELS`, both unlock at once,
+like Tiny Guy after level 5 — no trip to the shop needed. Buying the shop row unlocks both forever. God Henry has Henry's brown hair and
+God Tom's crown. Both have Tom's base stats and a permanent Super Star: ordinary
+enemies and their shots cannot hurt them, and touching an enemy kills it. A
+boss still hurts them on contact and with its attacks or minions' shots. Touching
+a boss also lands a star hit, with the usual contact cooldown: the first hit
+drops it to half health, and later hits count as ordinary hits. The star glow
+ends on a mid-level skin switch and returns when either god skin is worn again.
+Bought and picked-up Stars and Mushrooms keep their own timers.
 
-- **Kill stacking** — every kill while wearing God Tom adds a stack of that
+- **Kill stacking** — every kill while wearing either god skin adds a stack of that
   enemy's own stats for 9 seconds: its max HP (added to both your max and
   current HP) and half its speed (added to your run speed). Stacks, no cap;
   each expires on its own clock, and expiring only ever lowers your max HP,
@@ -201,9 +212,16 @@ forever. Base stats are Tom's.
   80px in front of you (never a galactic minion, never a boss) and carries it
   overhead; E again throws it in the direction you are facing. It kills any
   ordinary enemy it hits on the way (a kill like any other — coins, score,
-  a God Tom stack) and is destroyed on impact or after 1.5 seconds. It is
+  a god skin stack) and is destroyed on impact or after 1.5 seconds. It is
   never a hit on a boss — a thrown enemy that reaches one just falls and dies.
 - **No flying.** It was in the brainstorm; cut here.
+
+**Primrose** — purple and red armor, Tom's stats, and an E shot on every
+press. The first is a fast, straight lightning bolt; the next is a fireball
+that looks and moves like the Fireball power-up. The shots keep alternating
+without a cooldown. Both deal the Fireball power-up's 25 damage to ordinary
+enemies. The HUD shows which shot comes next. The existing bosses ignore both
+shots; a later boss can opt in with `primroseOnly` in its `BossDef`.
 
 **Enemies**
 
@@ -319,6 +337,15 @@ they are easy to find and easy to change:
   bought skin unworn seemed like the more confusing default.
 - **`SKINS_CONFIG.switchMidLevel` defaults to on.** John's call, over Henry's
   "that's cheating" — see Controls and the shop section above.
+
+### Placeholders from the new skins and trader
+
+- **Mom, Dad, God Henry and Primrose stats**: 100 HP, 320 run speed and -760 jump, copied from Shellcracker or Tom. Their shared 42×58 body and 48×62 art size are copied too.
+- **Mom and Dad prices**: 100 coins each, matching Big Bob's other skins.
+- **Primrose price**: 500 coins. Each shot deals the Fireball power-up's 25 damage. The lightning bolt moves at 900 pixels per second and lasts 1200ms; the fireball uses the power-up's movement. Lightning art is 44×22 pixels.
+- **God skin shimmer**: alpha 0.25–0.8, scale 0.85–1.15, over 550ms. Mom's curls, Dad's glasses and Primrose's armor use hand-picked art coordinates and sizes in `BootScene.ts`.
+- **Pause card**: six skins per page; the page label and buttons sit at about y=649–650, with a message at y=690. The shop rows start at y=160, 36 pixels apart, with details six pixels below the last row.
+- **The Llama Trader's name and stick-man art**: a placeholder until Henry names him.
 
 ### Placeholders from the modes / Kitty suit / hole / God Tom slice
 

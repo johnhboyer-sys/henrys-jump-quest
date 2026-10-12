@@ -14,6 +14,11 @@ export interface ProjectileOptions {
   status?: 'slow' | 'freeze' | 'stuck';
   spin?: number;
   scale?: number;
+  /** Boss attacks and shots from boss-owned minions still hurt god skins. */
+  bossShot?: boolean;
+  /** Hit rules can tell both the element and whether Primrose fired it. */
+  element?: 'fire' | 'lightning';
+  primroseShot?: boolean;
 }
 
 /**
@@ -24,6 +29,9 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
   damage = 0;
   status: 'slow' | 'freeze' | 'stuck' | null = null;
   bouncesLeft = 0;
+  bossShot = false;
+  element: 'fire' | 'lightning' | null = null;
+  primroseShot = false;
   private dieAt = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -54,6 +62,9 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     body.setBounce(opts.bounce ?? 0);
 
     this.damage = opts.damage;
+    this.bossShot = opts.bossShot ?? false;
+    this.element = opts.element ?? null;
+    this.primroseShot = opts.primroseShot ?? false;
     this.status = opts.status ?? null;
     this.bouncesLeft = opts.bounce ? 3 : 0;
     this.dieAt = this.scene.time.now + (opts.lifetimeMs ?? 3000);

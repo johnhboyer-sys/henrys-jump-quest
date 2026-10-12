@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { PLAYER, PHYSICS, STATUS, CLOUD, FIREBALL, STAR, MUSHROOM, KITTY_SUIT } from '../config/game';
 import type { PowerUpKind } from '../config/powerups';
 import { BOUGHT_FORM_MS } from '../config/shop';
-import { SKINS, SHELLCRACKER_BACKWARDS_SPEED, type SkinAttack, type SkinDef } from '../config/skins';
+import { SKINS, SHELLCRACKER_BACKWARDS_SPEED, isGodSkin, type SkinAttack, type SkinDef } from '../config/skins';
 import type { SkinId } from '../config/skins';
 
 export type StatusKind = 'slow' | 'freeze' | 'stuck';
@@ -33,6 +33,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private formUntil = 0;
   private formTotal = 0;
   private formAura?: Phaser.GameObjects.Image;
+  private godAura?: Phaser.GameObjects.Image;
 
   private airJumpsLeft = 0;
   private lastGroundedAt = -Infinity;
@@ -72,6 +73,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     body.setOffset((def.texW - def.bodyW) / 2, def.texH - def.bodyH);
     body.setMaxVelocityY(PHYSICS.maxFallSpeed);
     body.setCollideWorldBounds(false);
+    if (this.hasGodStar) this.setSkin(skin);
   }
 
   // -- Queries --------------------------------------------------------------
@@ -123,6 +125,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   /** Nothing can hurt the player while a transformation is up. */
   get isInvincible(): boolean {
     return this.form === 'star' || this.form === 'mushroom';
+  }
+
+  get hasGodStar(): boolean {
+    return isGodSkin(this.skin);
   }
 
   /** How many air jumps a transformation is worth on top of the cloud. */
@@ -384,8 +390,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   /** Returns true if the hit actually landed (i.e. not blocked by i-frames). */
-  takeDamage(amount: number, fromX?: number): boolean {
-    if (this.isInvincible || this.isInvulnerable || !this.isAlive) return false;
+  takeDamage(amount: number, fromX?: number, bossDamage = false): boolean {
+    if ((!bossDamage && (this.isInvincible || this.hasGodStar)) || (bossDamage && this.isInvincible && !this.hasGodStar) || this.isInvulnerable || !this.isAlive) return false;
     this.hp = Math.max(0, this.hp - amount);
     this.invulnUntil = this.scene.time.now + PLAYER.invulnMs;
 
@@ -445,6 +451,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
    */
   setSkin(skin: SkinId): void {
     this.skin = skin;
+    this.godAura?.destroy();
+    this.godAura = undefined;
+    if (this.hasGodStar) {
+      this.godAura = this.scene.add.image(this.x, this.y - PLAYER.height / 2, 'aura-star').setDepth(18).setAlpha(0.6); // placeholder: not Henry's number
+      this.scene.tweens.add({ targets: this.godAura, alpha: { from: 0.25, to: 0.8 }, scale: { from: 0.85, to: 1.15 }, duration: 550, yoyo: true, repeat: -1 }); // placeholder: not Henry's number
+    }
     const def = this.skinDef;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(def.bodyW, def.bodyH);
@@ -512,6 +524,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.scene.time.paused) return;
 
     this.updateGodTomStacks(time);
+    this.godAura?.setPosition(this.x, this.y - PLAYER.height / 2);
+    if (this.hasGodStar && this.form !== 'star') this.setTint(0xffe58a);
+    if (!this.hasGodStar && this.form === 'none') this.clearTint();
 
     if (this.form !== 'none') {
       if (time >= this.formUntil) {

@@ -91,6 +91,7 @@ export class ShellcrackerMom extends BossBase {
     });
 
     this.world.shoot(x, y, {
+          bossShot: true,
       texture: 'hand-whip-hit',
       damage: MOM_ATTACKS.handWhipDamage,
       vx: 0,
@@ -112,6 +113,7 @@ export class ShellcrackerMom extends BossBase {
         if (!this.active) return;
         const spread = 0.75 + i * 0.18;
         this.world.shoot(this.x + dir * 60, this.y - this.def.bodyHeight, {
+          bossShot: true,
           texture: hand.texture,
           damage: hand.damage,
           vx: dir * hand.speed * spread,
@@ -131,6 +133,7 @@ export class ShellcrackerMom extends BossBase {
     const fire = ENEMY_PROJECTILE.bossFire;
     const dir = this.flipX ? -1 : 1;
     this.world.shoot(this.x + dir * 78, this.y - 74, {
+          bossShot: true,
       texture: fire.texture,
       damage: fire.damage,
       vx: dir * fire.speed * Phaser.Math.FloatBetween(0.9, 1.25),

@@ -32,7 +32,7 @@ import { createBoss, type BossBase, type HitSource } from '../entities/bosses';
 import { createEnemy, Enemy, type EnemyWorld } from '../entities/enemies';
 import type { EnemyKind } from '../config/enemies';
 import { buildBackdrop } from '../systems/Backdrop';
-import { SKINS, RAIDER_SWORD_FRACTION, type AttackKind } from '../config/skins';
+import { SKINS, RAIDER_SWORD_FRACTION, isGodSkin, type AttackKind } from '../config/skins';
 import {
   recordLevelClear,
   loadSave,
@@ -77,6 +77,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   private goal?: GoalFlag;
   private boss?: BossBase;
   private bossAwake = false;
+  private primroseNext: 'lightning' | 'fire' = 'lightning';
 
   private iceSurfaces = new Set<Phaser.GameObjects.GameObject>();
   private touchingIce = false;
@@ -148,6 +149,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     this.deaths = 0;
     this.finished = false;
     this.bossAwake = false;
+    this.primroseNext = 'lightning';
     this.traps = [];
     this.checkpoints = [];
     this.goal = undefined;
@@ -772,7 +774,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (!enemy.active || !this.player.isAlive) return;
 
     // A star or the god mushroom clears anything it touches, instantly.
-    if (this.player.isInvincible) {
+    if (this.player.isInvincible || this.player.hasGodStar) {
       play('stomp');
       this.killEnemy(enemy, SCORE.enemyStomp);
       return;
@@ -818,7 +820,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
   private onPlayerShot(shot: Projectile): void {
     if (!shot.active || !this.player.isAlive) return;
-    if (this.player.isInvincible) {
+    if ((this.player.isInvincible && !(this.player.hasGodStar && shot.bossShot)) || (this.player.hasGodStar && !shot.bossShot)) {
       shot.pop();
       return;
     }
@@ -826,7 +828,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     const status = shot.status;
     shot.pop();
 
-    if (this.player.takeDamage(damage, shot.x)) {
+    if (this.player.takeDamage(damage, shot.x, shot.bossShot)) {
       if (status === 'slow') this.player.applyStatus('slow');
       if (status === 'stuck') this.player.applyStatus('stuck');
       if (status === 'freeze') this.player.applyStatus('freeze');
@@ -838,6 +840,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
   private onShotHitsEnemy(shot: Projectile, enemy: Enemy): void {
     if (!shot.active || !enemy.active) return;
+    // `shot.primroseShot` and `shot.element` are available for later enemy rules.
     shot.pop();
     if (enemy.hit(shot.damage)) this.killEnemy(enemy, SCORE.enemyBurned);
   }
@@ -845,9 +848,10 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   private onShotHitsBoss(shot: Projectile): void {
     if (!shot.active || !this.boss || !this.boss.active) return;
     shot.pop();
+    if (shot.primroseShot && !this.boss.def.primroseOnly) return;
     play('stomp');
     // A fireball thrown while transformed hits far harder.
-    const source: HitSource = this.player.form === 'mushroom' ? 'mushroom' : 'fire';
+    const source: HitSource = shot.primroseShot ? 'primrose' : this.player.form === 'mushroom' ? 'mushroom' : 'fire';
     if (this.boss.hit(source)) this.defeatBoss();
     this.emitHud();
   }
@@ -856,14 +860,19 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     if (!this.boss || !this.boss.active || !this.player.isAlive) return;
 
     // Running into a boss while transformed hurts the boss, not the player.
-    if (this.player.isInvincible) {
+    if (this.player.isInvincible || this.player.hasGodStar) {
       const now = this.time.now;
       if (now - this.bossContactAt > 600) {
         this.bossContactAt = now;
-        const source: HitSource = this.player.form === 'star' ? 'star' : 'mushroom';
+        const source: HitSource = this.player.hasGodStar || this.player.form === 'star' ? 'star' : 'mushroom';
         play('stomp');
         if (this.boss.hit(source)) this.defeatBoss();
         this.emitHud();
+      }
+      if (this.player.hasGodStar && this.boss.active && this.player.takeDamage(this.boss.def.touchDamage, this.boss.x, true)) {
+        play('hurt');
+        this.emitHud();
+        this.checkDeath();
       }
       return;
     }
@@ -886,7 +895,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
   /** God Tom only: a kill grants a stack of that enemy's own stats for 9s. */
   private addGodTomStack(enemy: Enemy): void {
-    if (this.player.skin !== 'godTom') return;
+    if (!isGodSkin(this.player.skin)) return;
     const speedGain = enemy.def.speed * GOD_TOM.speedFraction;
     this.player.addGodTomStack(enemy.def.hp, speedGain, this.time.now + GOD_TOM.stackDurationMs);
   }
@@ -899,6 +908,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     const dir = this.player.facing;
     shot.fire(this.player.x + dir * 26, this.player.y - 34, {
       texture: 'proj-playerfire',
+      element: 'fire',
       damage: FIREBALL.damage,
       vx: dir * FIREBALL.speed,
       vy: -120,
@@ -906,6 +916,26 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       bounce: FIREBALL.bounce,
       lifetimeMs: FIREBALL.lifetimeMs,
       spin: dir * 420,
+    });
+    play('fire');
+    this.emitHud();
+  }
+
+  /** One shot per E press. Both kinds carry their element through the shot pool. */
+  private firePrimrose(): void {
+    if (!this.player.isAlive || this.player.isFrozen) return;
+    const shot = this.playerShots.get(this.player.x, this.player.y) as Projectile | null;
+    if (!shot) return;
+    const dir = this.player.facing;
+    const element = this.primroseNext;
+    this.primroseNext = element === 'lightning' ? 'fire' : 'lightning';
+    shot.fire(this.player.x + dir * 26, this.player.y - 34, element === 'fire' ? {
+      texture: 'proj-playerfire', damage: FIREBALL.damage, element, primroseShot: true,
+      vx: dir * FIREBALL.speed, vy: -120, gravity: FIREBALL.gravity,
+      bounce: FIREBALL.bounce, lifetimeMs: FIREBALL.lifetimeMs, spin: dir * 420,
+    } : {
+      texture: 'proj-lightning', damage: FIREBALL.damage, element, primroseShot: true,
+      vx: dir * 900, vy: 0, lifetimeMs: 1200, // placeholder: not Henry's number
     });
     play('fire');
     this.emitHud();
@@ -1448,7 +1478,7 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
       formMs: this.player.formRemainingMs,
       formTotalMs: this.player.formTotalMs,
       skinLabel: SKINS[this.player.skin].label,
-      attackHint: attack ? attack.hint : null,
+      attackHint: this.player.skin === 'primrose' ? `E = ${this.primroseNext === 'lightning' ? 'lightning' : 'fireball'}` : attack ? attack.hint : null,
       canNurseHeal:
         isNurse && this.player.hp < this.player.maxHp && loadSave().totalCoins >= 20,
       nearlyImpossible: getMode() === 'nearlyImpossible',
@@ -1520,7 +1550,8 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     const attackPressed = Phaser.Input.Keyboard.JustDown(k.e) || touchInput.attackPressed;
     touchInput.attackPressed = false;
     if (attackPressed) {
-      if (this.player.skin === 'godTom') this.tryGodTomAction();
+      if (isGodSkin(this.player.skin)) this.tryGodTomAction();
+      else if (this.player.skin === 'primrose') this.firePrimrose();
       else this.tryPlayerAttack(time);
     }
     const healPressed = Phaser.Input.Keyboard.JustDown(k.h) || touchInput.healPressed;

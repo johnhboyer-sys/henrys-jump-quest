@@ -36,7 +36,7 @@ export interface SkinShopItem {
 
 export type ShopItem = PowerUpShopItem | SkinShopItem;
 
-/** Boo Mommy Bag's stall: the four power-ups, plus James and Nurse. */
+/** The Llama Trader's stall (name is a placeholder until Henry names him). */
 export const BOO_STOCK: ShopItem[] = [
   { kind: 'powerup', id: 'fireball', label: 'Fireball', price: 50, texture: 'pw-fireball', blurb: 'start the next level with 12 fireballs' },
   { kind: 'powerup', id: 'cloud', label: 'Cloud', price: 50, texture: 'pw-cloud', blurb: 'start the next level with the cloud' },
@@ -46,14 +46,17 @@ export const BOO_STOCK: ShopItem[] = [
   { kind: 'skin', id: 'james-own', skin: 'james', mode: 'own', label: 'James (forever)', price: 1000, texture: 'james-idle', blurb: 'own James for good' },
   { kind: 'skin', id: 'nurse-rent', skin: 'nurse', mode: 'rent', levels: 20, label: 'Nurse (rent)', price: 100, texture: 'nurse-idle', blurb: 'wear the Nurse for 20 levels' },
   { kind: 'skin', id: 'nurse-own', skin: 'nurse', mode: 'own', label: 'Nurse (forever)', price: 1000, texture: 'nurse-idle', blurb: 'own the Nurse for good' },
-  // Listed from the start so it is a visible goal. 10,000 coins, or free once
+  { kind: 'skin', id: 'primrose-own', skin: 'primrose', mode: 'own', label: 'Primrose', price: 500, texture: 'primrose-idle', blurb: 'lightning and fireball shots — free after level 11' }, // placeholder: not Henry's number
+  // Listed from the start so it is a visible goal. 1,000 coins, or free once
   // the game itself has been beaten — see SaveSystem.hasBeatenGame.
-  { kind: 'skin', id: 'godTom-own', skin: 'godTom', mode: 'own', label: 'God Tom', price: 10000, texture: 'godTom-idle', blurb: 'own God Tom for good — free once you beat the game' },
+  { kind: 'skin', id: 'godTom-own', skin: 'godTom', mode: 'own', label: 'God Tom + God Henry', price: 1000, texture: 'godTom-idle', blurb: 'both god skins — free once you beat the game' }, // Henry's number
 ];
 
 /** Big Bob's stall: boss skins, only once you have beaten the boss. */
 export const BOB_STOCK: ShopItem[] = [
   { kind: 'skin', id: 'shellcracker-own', skin: 'shellcracker', mode: 'own', label: 'Shellcracker', price: 100, texture: 'shellcracker-idle', blurb: 'own the Shellcracker skin for good' },
+  { kind: 'skin', id: 'shellcrackerMom-own', skin: 'shellcrackerMom', mode: 'own', label: "Shellcracker's Mom", price: 100, texture: 'shellcrackerMom-idle', blurb: 'own her skin after beating her' }, // placeholder: not Henry's number
+  { kind: 'skin', id: 'shellcrackerDad-own', skin: 'shellcrackerDad', mode: 'own', label: "Shellcracker's Dad", price: 100, texture: 'shellcrackerDad-idle', blurb: 'own his skin after beating him' }, // placeholder: not Henry's number
   { kind: 'skin', id: 'galacticRaider-own', skin: 'galacticRaider', mode: 'own', label: 'Galactic Raider', price: 100, texture: 'galacticRaider-idle', blurb: 'own the Galactic Raider skin for good' },
 ];
 

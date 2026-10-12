@@ -59,6 +59,7 @@ export class FireFoe extends Enemy {
     const fire = ENEMY_PROJECTILE.fire;
     const angle = Phaser.Math.Angle.Between(this.x, this.y - 30, p.x, p.y - 20);
     this.world.shoot(this.x + this.dir * 20, this.y - 30, {
+        bossShot: this.owner !== undefined,
       texture: fire.texture,
       damage: fire.damage,
       vx: Math.cos(angle) * fire.speed,

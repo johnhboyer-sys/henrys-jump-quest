@@ -308,11 +308,11 @@ export class BootScene extends Phaser.Scene {
   }
 
   /** God Tom: Tom, but with a golden glow and a crown. */
-  private drawGodTom(g: Phaser.GameObjects.Graphics, legs: 'stand' | 'runA' | 'runB' | 'air'): void {
+  private drawGodTom(g: Phaser.GameObjects.Graphics, legs: 'stand' | 'runA' | 'runB' | 'air', henry = false): void {
     // Golden aura, drawn behind the body.
     g.fillStyle(0xffe27a, 0.3);
     g.fillCircle(24, 30, 30);
-    this.drawKid(g, legs, 'tom');
+    this.drawKid(g, legs, henry ? 'henry' : 'tom');
     // A little crown, perched on top of the cap.
     g.fillStyle(0xffd700, 1);
     g.fillRect(13, 1, 22, 4);
@@ -339,6 +339,26 @@ export class BootScene extends Phaser.Scene {
       this.tex(`galacticRaider-${pose}`, 48, 62, (g) => this.drawRaiderKid(g, legsFor[pose]));
       this.tex(`tinyGuy-${pose}`, 32, 40, (g) => this.drawTinyGuy(g, legsFor[pose]));
       this.tex(`godTom-${pose}`, 48, 62, (g) => this.drawGodTom(g, legsFor[pose]));
+      this.tex(`godHenry-${pose}`, 48, 62, (g) => this.drawGodTom(g, legsFor[pose], true));
+      this.tex(`shellcrackerMom-${pose}`, 48, 62, (g) => {
+        // placeholder: not Henry's number — curl positions, size and colour.
+        this.drawShellKid(g, legsFor[pose]);
+        g.fillStyle(0xf2d24a, 1);
+        for (const [x, y] of [[10, 13], [8, 21], [8, 30], [8, 39], [8, 48], [41, 13], [43, 21], [43, 30], [43, 39], [43, 48]] as const) g.fillCircle(x, y, 5); // placeholder: not Henry's number
+      });
+      this.tex(`shellcrackerDad-${pose}`, 48, 62, (g) => {
+        // placeholder: not Henry's number — glasses positions and size.
+        this.drawShellKid(g, legsFor[pose]);
+        g.lineStyle(2, 0x1a1a1a, 1);
+        g.strokeCircle(24, 21, 6); g.strokeCircle(34, 21, 6); g.lineBetween(30, 21, 28, 21); // placeholder: not Henry's number
+      });
+      this.tex(`primrose-${pose}`, 48, 62, (g) => {
+        // placeholder: not Henry's number — armor shapes, sizes and colours.
+        this.drawKid(g, legsFor[pose], 'henry');
+        g.fillStyle(0x6d35a4, 1); g.fillRoundedRect(10, 25, 32, 23, 5); // placeholder: not Henry's number
+        g.fillStyle(0xc93450, 1); g.fillTriangle(10, 26, 25, 29, 10, 40); g.fillTriangle(42, 26, 27, 29, 42, 40);
+        g.fillStyle(0xffd55d, 1); g.fillCircle(26, 36, 4);
+      });
     }
     for (const pose of poses) {
       this.tex(`godshroom-${pose}`, 48, 62, (g) => this.drawGodShroom(g, legsFor[pose]));
@@ -584,50 +604,18 @@ export class BootScene extends Phaser.Scene {
 
   // -- Shopkeepers ----------------------------------------------------------
 
-  /** Boo Mommy Bag: a big friendly handbag of a lady with an enormous nose. */
+  /** The Llama Trader: a stick man between the two llamas placed by the UI. */
   private makeMerchant(): void {
     this.tex('merchant-boo', 160, 210, (g) => {
-      // Handle
-      g.lineStyle(10, 0x7a3f8f, 1);
-      g.beginPath();
-      g.arc(80, 60, 44, Math.PI, 0);
-      g.strokePath();
-      // Bag body
-      g.fillStyle(0xb05ac8, 1);
-      g.fillRoundedRect(10, 56, 140, 130, 24);
-      g.fillStyle(0x9446ad, 1);
-      g.fillRoundedRect(10, 150, 140, 36, 18);
-      // Clasp
-      g.fillStyle(0xffd76b, 1);
-      g.fillRoundedRect(68, 56, 24, 14, 4);
-      // Eyes, with lashes
-      g.fillStyle(0xffffff, 1);
-      g.fillCircle(50, 94, 13);
-      g.fillCircle(110, 94, 13);
-      g.fillStyle(0x2a1a30, 1);
-      g.fillCircle(52, 96, 6);
-      g.fillCircle(108, 96, 6);
-      g.lineStyle(3, 0x2a1a30, 1);
-      for (const ex of [50, 110]) {
-        g.lineBetween(ex - 10, 80, ex - 14, 74);
-        g.lineBetween(ex, 80, ex, 72);
-        g.lineBetween(ex + 10, 80, ex + 14, 74);
-      }
-      // The giant nose
-      g.fillStyle(0xf2a0b8, 1);
-      g.fillEllipse(80, 124, 66, 52);
-      g.fillStyle(0xd9728f, 1);
-      g.fillCircle(66, 136, 6);
-      g.fillCircle(94, 136, 6);
-      // Smile
-      g.lineStyle(4, 0x5a1f6b, 1);
-      g.beginPath();
-      g.arc(80, 156, 20, 0.3, Math.PI - 0.3);
-      g.strokePath();
-      // Feet
-      g.fillStyle(0x5a1f6b, 1);
-      g.fillRoundedRect(36, 186, 30, 22, 8);
-      g.fillRoundedRect(94, 186, 30, 22, 8);
+      // placeholder: not Henry's number — stick man art coordinates and colours.
+      g.lineStyle(7, 0x292536, 1);
+      g.lineBetween(80, 73, 80, 153);
+      g.lineBetween(80, 95, 48, 126); g.lineBetween(80, 95, 112, 126);
+      g.lineBetween(80, 153, 53, 204); g.lineBetween(80, 153, 107, 204);
+      g.fillStyle(0xf0bd91, 1); g.fillCircle(80, 48, 25);
+      g.fillStyle(0x4a3024, 1); g.fillEllipse(80, 32, 51, 20);
+      g.fillStyle(0x222222, 1); g.fillCircle(72, 49, 3); g.fillCircle(88, 49, 3);
+      g.lineStyle(2, 0x8d5241, 1); g.lineBetween(72, 60, 88, 60);
     });
 
     // One of her llamas. Faces left; flip it for the other side.
@@ -749,6 +737,17 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0x2a0d02, 1);
       g.fillCircle(11, 13, 1.8);
       g.fillCircle(19, 13, 1.8);
+    });
+
+    this.tex('proj-lightning', 44, 22, (g) => { // placeholder: not Henry's number
+      // placeholder: not Henry's number — bolt shape, line widths and colours.
+      g.fillStyle(0xffe45c, 0.35);
+      g.fillTriangle(0, 11, 25, 0, 17, 11);
+      g.fillTriangle(12, 18, 44, 7, 19, 9);
+      g.lineStyle(5, 0xffe45c, 1);
+      g.lineBetween(1, 12, 17, 5); g.lineBetween(17, 5, 12, 17); g.lineBetween(12, 17, 43, 9);
+      g.lineStyle(2, 0xffffff, 1);
+      g.lineBetween(1, 12, 17, 5); g.lineBetween(17, 5, 12, 17); g.lineBetween(12, 17, 43, 9);
     });
 
     // Sticky rain drop.

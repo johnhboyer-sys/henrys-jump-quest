@@ -11,8 +11,12 @@ export type SkinId =
   | 'nurse'
   | 'tinyGuy'
   | 'shellcracker'
+  | 'shellcrackerMom'
+  | 'shellcrackerDad'
   | 'galacticRaider'
-  | 'godTom';
+  | 'godTom'
+  | 'godHenry'
+  | 'primrose';
 
 export type AttackKind = 'purse' | 'hammer' | 'sword' | 'backfire';
 
@@ -132,6 +136,16 @@ export const SKINS: Record<SkinId, SkinDef> = {
       hint: 'E = backfire',
     },
   },
+  shellcrackerMom: {
+    id: 'shellcrackerMom', label: "Shellcracker's Mom",
+    maxHp: 100, runSpeed: 320, jumpVelocity: -760, // placeholder: not Henry's number
+    bodyW: 42, bodyH: 58, texW: 48, texH: 62, // placeholder: not Henry's number
+  },
+  shellcrackerDad: {
+    id: 'shellcrackerDad', label: "Shellcracker's Dad",
+    maxHp: 100, runSpeed: 320, jumpVelocity: -760, // placeholder: not Henry's number
+    bodyW: 42, bodyH: 58, texW: 48, texH: 62, // placeholder: not Henry's number
+  },
   galacticRaider: {
     id: 'galacticRaider',
     label: 'Galactic Raider',
@@ -166,7 +180,21 @@ export const SKINS: Record<SkinId, SkinDef> = {
     // No `attack` here: God Tom's E is pick-up-and-throw, a two-state action
     // handled directly in GameScene rather than through the generic swing.
   },
+  godHenry: {
+    id: 'godHenry', label: 'God Henry',
+    maxHp: 100, runSpeed: 320, jumpVelocity: -760, // placeholder: not Henry's number
+    bodyW: 42, bodyH: 58, texW: 48, texH: 62, // placeholder: not Henry's number
+  },
+  primrose: {
+    id: 'primrose', label: 'Primrose',
+    maxHp: 100, runSpeed: 320, jumpVelocity: -760, // placeholder: not Henry's number
+    bodyW: 42, bodyH: 58, texW: 48, texH: 62, // placeholder: not Henry's number
+  },
 };
+
+export function isGodSkin(id: SkinId): boolean {
+  return id === 'godTom' || id === 'godHenry';
+}
 
 /** Shellcracker's backwards-walk speed while holding Left and Right together. */
 export const SHELLCRACKER_BACKWARDS_SPEED = 160; // Henry's number

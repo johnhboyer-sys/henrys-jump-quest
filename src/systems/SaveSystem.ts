@@ -119,6 +119,8 @@ export function recordLevelClear(levelId: number, score: number, coins: number):
 /** Which boss must be beaten before Big Bob will sell that boss's skin. */
 const BOSS_UNLOCK: Partial<Record<SkinId, { level: number; name: string }>> = {
   shellcracker: { level: 3, name: 'Shellcracker' },
+  shellcrackerMom: { level: 8, name: "Shellcracker's Mom" }, // level from Henry's boss plan
+  shellcrackerDad: { level: 11, name: "Shellcracker's Dad" }, // level from Henry's boss plan
   galacticRaider: { level: 5, name: 'the Galactic Raider' },
 };
 
@@ -131,12 +133,15 @@ export function availableSkins(save: SaveData, levelId?: number): SkinId[] {
   if (save.ownedSkins.includes('shellcracker') || (levelId === 3 && save.clearedLevel >= 3)) {
     list.push('shellcracker');
   }
+  if (save.ownedSkins.includes('shellcrackerMom') || (levelId === 8 && save.clearedLevel >= 8)) list.push('shellcrackerMom');
+  if (save.ownedSkins.includes('shellcrackerDad') || (levelId === 11 && save.clearedLevel >= 11)) list.push('shellcrackerDad');
   if (save.ownedSkins.includes('galacticRaider') || (levelId === 5 && save.clearedLevel >= 5)) {
     list.push('galacticRaider');
   }
   // Henry: God Tom is free once you beat the game, so he unlocks by himself
   // then (like Tiny Guy after level 5) instead of waiting in the shop.
-  if (save.ownedSkins.includes('godTom') || hasBeatenGame(save)) list.push('godTom');
+  if (save.ownedSkins.includes('godTom') || save.ownedSkins.includes('godHenry') || hasBeatenGame(save)) list.push('godTom', 'godHenry');
+  if (save.ownedSkins.includes('primrose') || save.clearedLevel >= 11) list.push('primrose');
   return list;
 }
 
@@ -153,14 +158,15 @@ export function hasBeatenGame(save: SaveData): boolean {
 /** Why an item cannot be bought right now, or null if it can. */
 export function blockedReason(save: SaveData, item: ShopItem): string | null {
   if (item.kind === 'skin') {
-    const owned = save.ownedSkins.includes(item.skin);
+    const owned = save.ownedSkins.includes(item.skin) || (item.skin === 'godTom' && save.ownedSkins.includes('godHenry'));
     const rented = (save.skinRentals[item.skin] ?? 0) > 0;
     const req = BOSS_UNLOCK[item.skin];
     if (req && save.clearedLevel < req.level && !owned) return `Beat ${req.name} first!`;
     if (owned) return 'You already own it!';
+    if (item.skin === 'primrose' && save.clearedLevel >= 11) return 'Primrose is already free!';
+    if (item.skin === 'godTom' && hasBeatenGame(save)) return 'Both god skins are already free!';
     if (item.mode === 'rent' && rented) return `You already have ${SKINS[item.skin].label}!`;
     // God Tom is free once the game has been beaten, whatever it costs.
-    if (item.skin === 'godTom' && hasBeatenGame(save)) return null;
     if (save.totalCoins < item.price) return 'Not enough coins!';
     return null;
   }
@@ -184,12 +190,12 @@ export function buyItem(item: ShopItem): SaveData | null {
   const save = loadSave();
   if (blockedReason(save, item)) return null;
   // God Tom is free once the game has been beaten — nothing to spend.
-  const free = item.kind === 'skin' && item.skin === 'godTom' && hasBeatenGame(save);
-  if (!free) save.totalCoins -= item.price;
+  save.totalCoins -= item.price;
 
   if (item.kind === 'skin') {
     if (item.mode === 'own') {
       if (!save.ownedSkins.includes(item.skin)) save.ownedSkins.push(item.skin);
+      if (item.skin === 'godTom' && !save.ownedSkins.includes('godHenry')) save.ownedSkins.push('godHenry');
       delete save.skinRentals[item.skin];
     } else {
       save.skinRentals[item.skin] = item.levels ?? 0;

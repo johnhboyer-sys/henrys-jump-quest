@@ -79,6 +79,7 @@ export class ShellcrackerDad extends BossBase {
       this.scene.time.delayedCall(i * DAD_ATTACKS.laserBoltSpreadMs, () => {
         if (!this.active) return;
         this.world.shoot(this.x + dir * 60, this.y - 90, {
+          bossShot: true,
           texture: laser.texture,
           damage: laser.damage,
           vx: Math.cos(angle) * laser.speed,
@@ -108,6 +109,7 @@ export class ShellcrackerDad extends BossBase {
     });
 
     this.world.shoot(x, y, {
+          bossShot: true,
       texture: 'hand-whip-hit',
       damage: DAD_ATTACKS.spankDamage,
       vx: 0,
@@ -123,6 +125,7 @@ export class ShellcrackerDad extends BossBase {
     const fire = ENEMY_PROJECTILE.bossFire;
     const dir = this.flipX ? -1 : 1;
     this.world.shoot(this.x + dir * 78, this.y - 74, {
+          bossShot: true,
       texture: fire.texture,
       damage: fire.damage,
       vx: dir * fire.speed * Phaser.Math.FloatBetween(0.9, 1.25),

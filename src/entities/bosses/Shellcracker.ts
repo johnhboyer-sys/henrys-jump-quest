@@ -68,6 +68,7 @@ export class Shellcracker extends BossBase {
         // Fan the volley so one arc always lands near the ledges.
         const spread = 0.78 + i * 0.16;
         this.world.shoot(this.x + dir * 60, this.y - this.def.bodyHeight, {
+          bossShot: true,
           texture: shell.texture,
           damage: shell.damage,
           vx: dir * shell.speed * spread,
@@ -89,6 +90,7 @@ export class Shellcracker extends BossBase {
     const fire = ENEMY_PROJECTILE.bossFire;
     const dir = this.flipX ? -1 : 1;
     this.world.shoot(this.x + dir * 78, this.y - 74, {
+          bossShot: true,
       texture: fire.texture,
       damage: fire.damage,
       vx: dir * fire.speed * Phaser.Math.FloatBetween(0.9, 1.25),

@@ -428,7 +428,7 @@ export class UIScene extends Phaser.Scene {
     for (const b of this.touchButtons) {
       let show = this.touchControlsVisible;
       if (b.kind === 'attack') {
-        show = show && (this.hud.attackHint !== null || this.hud.skinLabel === 'God Tom');
+        show = show && (this.hud.attackHint !== null || this.hud.skinLabel === 'God Tom' || this.hud.skinLabel === 'God Henry');
       }
       if (b.kind === 'heal') show = show && this.hud.skinLabel === 'Nurse';
       b.circle.setVisible(show);
@@ -493,7 +493,7 @@ export class UIScene extends Phaser.Scene {
     const bits = [`Skin: ${this.hud.skinLabel}`];
     if (this.hud.attackHint) bits.push(this.hud.attackHint);
     if (this.hud.skinLabel === 'Nurse') bits.push('H = heal (20)');
-    if (this.hud.skinLabel === 'God Tom') bits.push('E = pick up / throw');
+    if (this.hud.skinLabel === 'God Tom' || this.hud.skinLabel === 'God Henry') bits.push('E = pick up / throw');
     this.skinInfoText
       .setText(bits.join('   '))
       .setColor(this.hud.canNurseHeal ? '#7ee6a0' : '#ffe27a');
@@ -601,6 +601,8 @@ export class UIScene extends Phaser.Scene {
       skinList = availableSkins(save, levelId);
       const listTop = 460;
       const lineHeight = 24;
+      const pageSize = 6; // placeholder: not Henry's number
+      let page = 0;
       const switchTitle = this.add
         .text(cx, listTop, 'Switch skin:', {
           fontFamily: FONT,
@@ -618,12 +620,12 @@ export class UIScene extends Phaser.Scene {
         );
       };
 
-      // Each row is its own tappable Text, so a tap and its matching number
-      // key both land on trySwitchSkin the same way.
-      skinList.forEach((id, i) => {
-        const label = `${i + 1} — ${SKINS[id].label}${id === save.skin ? ' (current)' : ''}`;
+      // Keys 1-6 pick the shown page; - and = turn pages. Touch uses the
+      // same rows and page buttons.
+      const rows: Phaser.GameObjects.Text[] = [];
+      for (let i = 0; i < pageSize; i++) {
         const row = this.add
-          .text(cx, listTop + 26 + i * lineHeight, label, {
+          .text(cx, listTop + 26 + i * lineHeight, '', {
             fontFamily: FONT,
             fontSize: '17px',
             color: '#cfd9e8',
@@ -631,12 +633,34 @@ export class UIScene extends Phaser.Scene {
           .setOrigin(0.5)
           .setDepth(56)
           .setInteractive({ useHandCursor: true });
-        row.on('pointerdown', () => trySwitch(id));
+        row.on('pointerdown', () => {
+          const id = skinList[page * pageSize + i];
+          if (id) trySwitch(id);
+        });
         extras.push(row);
-      });
+        rows.push(row);
+      }
+
+      const pageLabel = this.add.text(cx, 649, '', { fontFamily: FONT, fontSize: '16px', color: '#9fd8f0' }).setOrigin(0.5); // placeholder: not Henry's number
+      contents.push(pageLabel);
+      const showPage = () => {
+        rows.forEach((row, i) => {
+          const id = skinList[page * pageSize + i];
+          row.setText(id ? `${i + 1} — ${SKINS[id].label}${id === save.skin ? ' (current)' : ''}` : '');
+          row.setVisible(!!id);
+        });
+        pageLabel.setText(`Page ${page + 1}/${Math.ceil(skinList.length / pageSize)}   - previous   = next`);
+      };
+      const turnPage = (step: number) => {
+        page = Phaser.Math.Wrap(page + step, 0, Math.ceil(skinList.length / pageSize));
+        showPage();
+      };
+      showPage();
+      extras.push(...this.addTapButton(cx - 190, 650, 100, 34, 'PREV', () => turnPage(-1))); // placeholder: not Henry's number
+      extras.push(...this.addTapButton(cx + 190, 650, 100, 34, 'NEXT', () => turnPage(1))); // placeholder: not Henry's number
 
       switchMsg = this.add
-        .text(cx, listTop + 26 + skinList.length * lineHeight + 20, '', {
+        .text(cx, 690, '', { // placeholder: not Henry's number
           fontFamily: FONT,
           fontSize: '16px',
           color: '#ffe27a',
@@ -645,9 +669,11 @@ export class UIScene extends Phaser.Scene {
       contents.push(switchMsg);
 
       const handler = (ev: KeyboardEvent) => {
+        if (ev.key === '-' || ev.key === '=') { turnPage(ev.key === '-' ? -1 : 1); return; }
         const n = Number(ev.key);
-        if (!Number.isInteger(n) || n < 1 || n > skinList.length) return;
-        trySwitch(skinList[n - 1]);
+        if (!Number.isInteger(n) || n < 1 || n > pageSize) return;
+        const id = skinList[page * pageSize + n - 1];
+        if (id) trySwitch(id);
       };
       this.pauseDigitHandler = handler;
       this.input.keyboard!.on('keydown', handler);
@@ -857,7 +883,7 @@ export class UIScene extends Phaser.Scene {
       game.scene.start(key, data);
     };
 
-    // Boo Mommy Bag sets up shop after every normal level; Big Bob after a
+    // The Llama Trader sets up shop after every normal level; Big Bob after a
     // boss. Click either to buy — same guarded leave() either way.
     if (d.merchant === 'bob') {
       for (const [lx, flip] of [
@@ -893,7 +919,7 @@ export class UIScene extends Phaser.Scene {
         .setDepth(52)
         .setInteractive({ useHandCursor: true });
       this.add
-        .text(1110, 440, 'Click Boo Mommy Bag\nto go shopping!', {
+        .text(1110, 440, 'Click The Llama Trader\nto go shopping!', {
           fontFamily: FONT,
           fontSize: '18px',
           color: '#ffd76b',
