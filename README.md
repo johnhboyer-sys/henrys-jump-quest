@@ -98,7 +98,7 @@ jump, and body size, and some carry an attack on **E**.
 | Shellcracker's Dad | Big Bob: 100 coins forever, after level 11 | 100 | 320 | -760 | — |
 | God Tom | Llama Trader: 1000 coins for both god skins; both free after the last level | 100 | 320 | -760 | pick up / throw |
 | God Henry | same unlock as God Tom | 100 | 320 | -760 | pick up / throw |
-| Primrose | Llama Trader: 500 coins; free after level 11 | 100 | 320 | -760 | alternating lightning and fireball |
+| Primrose | Llama Trader: 750 coins; free after level 11 | 100 | 320 | -760 | alternating lightning and fireball |
 
 James's run speed genuinely overshoots — Henry was warned and kept it anyway.
 Shellcracker's costume also walks backwards, at 160, when you hold Left and
@@ -150,7 +150,7 @@ to shop:
 | James (forever) | 1000 | own James for good |
 | Nurse (rent) | 100 | wear the Nurse for the next 20 levels |
 | Nurse (forever) | 1000 | own the Nurse for good |
-| Primrose | 500 | own Primrose early; free once level 11 is clear |
+| Primrose | 750 | own Primrose early; free once level 11 is clear |
 | God Tom + God Henry | 1000 | own both god skins; free after the last level |
 
 Big Bob sells Shellcracker, Galactic Raider, Shellcracker's Mom and
@@ -382,7 +382,7 @@ they are easy to find and easy to change:
 
 - **Mom, Dad, God Henry and Primrose stats**: 100 HP, 320 run speed and -760 jump, copied from Shellcracker or Tom. Their shared 42×58 body and 48×62 art size are copied too.
 - **Mom and Dad prices**: 100 coins each, matching Big Bob's other skins.
-- **Primrose price**: 500 coins. Each shot deals the Fireball power-up's 25 damage. The lightning bolt moves at 900 pixels per second and lasts 1200ms; the fireball uses the power-up's movement. Lightning art is 44×22 pixels.
+- **Primrose shots**: each shot deals the Fireball power-up's 25 damage. The lightning bolt moves at 900 pixels per second and lasts 1200ms; the fireball uses the power-up's movement. Lightning art is 44×22 pixels.
 - **God skin shimmer**: alpha 0.25–0.8, scale 0.85–1.15, over 550ms. Mom's curls, Dad's glasses and Primrose's armor use hand-picked art coordinates and sizes in `BootScene.ts`.
 - **Pause card**: six skins per page; the page label and buttons sit at about y=649–650, with a message at y=690. The shop rows start at y=160, 36 pixels apart, with details six pixels below the last row.
 - **The Llama Trader's name and stick-man art**: a placeholder until Henry names him.

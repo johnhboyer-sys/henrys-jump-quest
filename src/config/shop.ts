@@ -46,7 +46,7 @@ export const BOO_STOCK: ShopItem[] = [
   { kind: 'skin', id: 'james-own', skin: 'james', mode: 'own', label: 'James (forever)', price: 1000, texture: 'james-idle', blurb: 'own James for good' },
   { kind: 'skin', id: 'nurse-rent', skin: 'nurse', mode: 'rent', levels: 20, label: 'Nurse (rent)', price: 100, texture: 'nurse-idle', blurb: 'wear the Nurse for 20 levels' },
   { kind: 'skin', id: 'nurse-own', skin: 'nurse', mode: 'own', label: 'Nurse (forever)', price: 1000, texture: 'nurse-idle', blurb: 'own the Nurse for good' },
-  { kind: 'skin', id: 'primrose-own', skin: 'primrose', mode: 'own', label: 'Primrose', price: 500, texture: 'primrose-idle', blurb: 'lightning and fireball shots — free after level 11' }, // placeholder: not Henry's number
+  { kind: 'skin', id: 'primrose-own', skin: 'primrose', mode: 'own', label: 'Primrose', price: 750, texture: 'primrose-idle', blurb: 'lightning and fireball shots — free after level 11' }, // Henry's number
   // Listed from the start so it is a visible goal. 1,000 coins, or free once
   // the game itself has been beaten — see SaveSystem.hasBeatenGame.
   { kind: 'skin', id: 'godTom-own', skin: 'godTom', mode: 'own', label: 'God Tom + God Henry', price: 1000, texture: 'godTom-idle', blurb: 'both god skins — free once you beat the game' }, // Henry's number
