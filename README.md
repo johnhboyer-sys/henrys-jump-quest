@@ -89,20 +89,20 @@ jump, and body size, and some carry an attack on **E**.
 | --- | --- | --- | --- | --- | --- |
 | Tom | free | 100 | 320 | -760 | — |
 | Henry | free | 100 | 320 | -760 | — |
-| James | Llama Trader: rent 20 coins / 3 levels, or 1000 forever | 90 | 1000 | -760 | — |
-| Nurse | Llama Trader: rent 100 coins / 20 levels, or 1000 forever | 100 | 320 | -760 | purse swing, 20 dmg, never hurts bosses |
+| James | Boo Mommy Bag: rent 20 coins / 3 levels, or 1000 forever | 90 | 1000 | -760 | — |
+| Nurse | Boo Mommy Bag: rent 100 coins / 20 levels, or 1000 forever | 100 | 320 | -760 | purse swing, 20 dmg, never hurts bosses |
 | Tiny Guy | free forever once you beat the Galactic Raider (level 5) | 100 | 370 | -820 | hammer swing, 30 dmg |
 | Shellcracker | Big Bob: 100 coins forever, once you have beaten him; also free to wear while replaying level 3 | 100 | 320 | -760 | backside fire, 50 dmg |
 | Galactic Raider | Big Bob: 100 coins forever, after level 5 | 100 | 320 | -760 | star sword — a quarter of an enemy's max HP per hit |
 | Shellcracker's Mom | Big Bob: 100 coins forever, after level 8 | 100 | 320 | -760 | — |
 | Shellcracker's Dad | Big Bob: 100 coins forever, after level 11 | 100 | 320 | -760 | — |
-| God Tom | Llama Trader: 1000 coins for both god skins; both free after the last level | 100 | 320 | -760 | pick up / throw |
+| God Tom | Boo Mommy Bag: 1000 coins for both god skins; both free after the last level | 100 | 320 | -760 | pick up / throw |
 | God Henry | same unlock as God Tom | 100 | 320 | -760 | pick up / throw |
-| Primrose | Llama Trader: 750 coins; free after level 11 | 100 | 320 | -760 | alternating lightning and fireball |
+| Primrose | Boo Mommy Bag: 750 coins; free after level 11 | 100 | 320 | -760 | alternating lightning and fireball |
 
 James's run speed genuinely overshoots — Henry was warned and kept it anyway.
 Shellcracker's costume also walks backwards, at 160, when you hold Left and
-Right together (everyone else just stands still). The first five bosses ignore E attacks. Gardener Shellcracker and Thunder Raider take Primrose shots only.
+Right together (everyone else just stands still). The first five bosses ignore E attacks, except Primrose's shots, which count as one ordinary hit (Henry). Gardener Shellcracker and Thunder Raider take Primrose shots only.
 
 **Dying** — you get 5 lives per attempt, plus any 1-UPs you have banked. A death
 puts you back on the last ground you stood on safely, so it costs you a few
@@ -134,7 +134,7 @@ next level** — every level starts you plain, unless you bought one in the shop
 **Coins and the shop** — coins come from the level, from ? blocks (a power-up
 block has a 50% chance of 4 coins as well as its power-up), 2 for every enemy
 you kill and 300 for beating a boss. They go in the bank when you finish a
-level. After every normal level **The Llama Trader** turns up on the level-clear
+level. After every normal level **Boo Mommy Bag** turns up on the level-clear
 card with his two beige llamas; after a **boss** level, **Big Bob** — a teddy bear
 "bigger than everything on screen" — turns up instead, with five llamas of his
 own (Henry claims he has "twelve hundred"; that part is a joke). Click either
@@ -155,8 +155,8 @@ to shop:
 
 Big Bob sells Shellcracker, Galactic Raider, Shellcracker's Mom and
 Shellcracker's Dad after each matching boss is beaten — 100 coins each,
-forever. The Llama Trader sells the god pair and Primrose. The trader name
-is a placeholder until Henry names him.
+forever (Henry's price). Boo Mommy Bag — now a stick man with two beige
+llamas — sells the god pair and Primrose.
 
 A bought Star or Mushroom comes back if you fall down a pit. A skin rental
 counts down by one level every time you finish a level, whichever skin you
@@ -190,7 +190,7 @@ no `recordLevelClear`, just a small "YOU BEAT IT!" card before you return.
 Losing all your lives in the hole sends you back to the level's own start,
 no re-lock penalty.
 
-**God Tom and God Henry** — sold together by the Llama Trader from the start,
+**God Tom and God Henry** — sold together by Boo Mommy Bag from the start,
 1000 coins, so it is a visible goal from the first time you open the shop.
 Once `clearedLevel` reaches the last level in `LEVELS`, both unlock at once,
 like Tiny Guy after level 5 — no trip to the shop needed. Buying the shop row unlocks both forever. God Henry has Henry's brown hair and
@@ -219,9 +219,11 @@ Bought and picked-up Stars and Mushrooms keep their own timers.
 **Primrose** — purple and red armor, Tom's stats, and an E shot on every
 press. The first is a fast, straight lightning bolt; the next is a fireball
 that looks and moves like the Fireball power-up. The shots keep alternating
-without a cooldown. Both deal the Fireball power-up's 25 damage to ordinary
-enemies. The HUD shows which shot comes next. The existing bosses ignore both
-shots; a later boss can opt in with `primroseOnly` in its `BossDef`.
+without a cooldown. Each deals 12.5 damage to ordinary enemies (Henry's
+number), so a Water Guy or Poison Flower takes two. The HUD shows which shot
+comes next. On any boss a Primrose shot counts as one ordinary hit (Henry);
+Gardener Shellcracker and Thunder Raider set `primroseOnly` in their `BossDef`
+and take nothing else.
 
 **Enemies**
 
@@ -297,12 +299,12 @@ Levels 12–16 bring the two new enemies. Levels 15–16 use a grey storm sky. I
 
 ### Placeholders for levels 12–16
 
-All new positions, layout sizes, art shapes, and level names are placeholders. So are the choices below; the new code marks chosen numbers with `// placeholder: not Henry's number`.
+All new positions, layout sizes and art shapes are placeholders; Henry kept the level names. So are the choices below, except those marked as Henry's; the new code marks chosen numbers with `// placeholder: not Henry's number`.
 
-- **Water Guy:** Fire Foe's 12 touch damage, 90 speed, 44×50 body, 520 range, 1700ms shot gap, 340 shot speed, 2400ms shot life, and 70 score. Elite copies use the old threefold HP, 50 touch damage and 1.35 speed scale.
-- **Poison Flower:** 12 touch damage, 44×50 body, 520 range, 2100ms shot gap, 240ms warning, 300 shot speed, 2600ms shot life and 70 score. Poison splits Henry's 8 into four ticks of 2, one per second; hits restart the timer.
-- **Gardener:** 1700 display HP, 160×130 body, 15 touch damage, 2300ms attack gap, 950ms warning, half HP enrage, three attack rotation, 700ms attack hold. Its rain lasts 3.5s; drops spawn every 260ms, deal 4 damage and fall at 380 speed. Walls stand 190px to either side, with a 55px gap at ledge height; each takes three fire hits. The rematch gains a ledge at x1340, y550.
-- **Thunder Raider:** Primrose-only rule, 1800 display HP, 160×100 body, 18 touch damage, 2200ms attack gap, 950ms warning, 100 move speed, half HP enrage, three attack rotation and 700ms attack hold. It floats around y575 with a 45px rise and fall. It calls two Water Guys 350px to either side. The chase cloud lasts 5s, tracks at 30% of the gap per rain tick, and drops 4 damage water at 380 speed. Three strikes each deal 15 damage, warn for 1s, start 700ms apart, and use a 70px mark.
+- **Water Guy:** Fire Foe's 12 touch damage (Henry kept it), 90 speed, 44×50 body, 520 range, 1700ms shot gap, 340 shot speed, 2400ms shot life, and 70 score. Elite copies use the old threefold HP, 50 touch damage and 1.35 speed scale.
+- **Poison Flower:** 12 touch damage (Henry kept it), 44×50 body, 520 range, 2100ms shot gap, 240ms warning, 300 shot speed, 2600ms shot life and 70 score. Poison is Henry's: 8 as four ticks of 2, one per second; hits restart the timer.
+- **Gardener:** 1700 display HP, 160×130 body, 15 touch damage, 2300ms attack gap, 950ms warning, half HP enrage, three attack rotation, 700ms attack hold. Its rain lasts 3.5s; drops spawn every 260ms, deal Henry's 10 damage and fall at 380 speed. Walls stand 190px to either side, with a 69px gap (y 495–564) at ledge height; each takes three fire hits, and only fire hurts them (Henry). The rematch gains a ledge at x1340, y550.
+- **Thunder Raider:** Primrose-only rule (Henry: "yes for now"), 1800 display HP, 160×130 body, 18 touch damage, 2200ms attack gap, 950ms warning, 100 move speed, half HP enrage, three attack rotation and 700ms attack hold. It floats around y615 with a 25px rise and fall, and passes through ledges. It calls two Water Guys 350px to either side. The chase cloud lasts Henry's 5s, tracks at 30% of the gap per rain tick, and drops Henry's 4 damage water at 380 speed. Three strikes (Henry's) each deal 15 damage, warn for 1s, start 700ms apart, and use a 70px mark.
 - **Feedback and hint:** immune notes wait 550ms between displays and fade over 750ms; the hint waits 450ms after entry. The storm backdrop's bands, clouds and rain are art choices.
 
 ## Decisions the brief left open
@@ -381,11 +383,10 @@ they are easy to find and easy to change:
 ### Placeholders from the new skins and trader
 
 - **Mom, Dad, God Henry and Primrose stats**: 100 HP, 320 run speed and -760 jump, copied from Shellcracker or Tom. Their shared 42×58 body and 48×62 art size are copied too.
-- **Mom and Dad prices**: 100 coins each, matching Big Bob's other skins.
-- **Primrose shots**: each shot deals the Fireball power-up's 25 damage. The lightning bolt moves at 900 pixels per second and lasts 1200ms; the fireball uses the power-up's movement. Lightning art is 44×22 pixels.
+- **Primrose shots**: each deals Henry's 12.5 damage; on a boss it counts as one ordinary hit. The lightning bolt moves at 900 pixels per second and lasts 1200ms; the fireball uses the power-up's movement. Lightning art is 44×22 pixels.
 - **God skin shimmer**: alpha 0.25–0.8, scale 0.85–1.15, over 550ms. Mom's curls, Dad's glasses and Primrose's armor use hand-picked art coordinates and sizes in `BootScene.ts`.
 - **Pause card**: six skins per page; the page label and buttons sit at about y=649–650, with a message at y=690. The shop rows start at y=160, 36 pixels apart, with details six pixels below the last row.
-- **The Llama Trader's name and stick-man art**: a placeholder until Henry names him.
+- **Boo Mommy Bag's stick-man art**: hand-picked shapes; Henry kept the name.
 
 ### Placeholders from the modes / Kitty suit / hole / God Tom slice
 

@@ -36,7 +36,7 @@ export interface SkinShopItem {
 
 export type ShopItem = PowerUpShopItem | SkinShopItem;
 
-/** The Llama Trader's stall (name is a placeholder until Henry names him). */
+/** Boo Mommy Bag's stall: a stick man with two llamas (Henry kept the name). */
 export const BOO_STOCK: ShopItem[] = [
   { kind: 'powerup', id: 'fireball', label: 'Fireball', price: 50, texture: 'pw-fireball', blurb: 'start the next level with 12 fireballs' },
   { kind: 'powerup', id: 'cloud', label: 'Cloud', price: 50, texture: 'pw-cloud', blurb: 'start the next level with the cloud' },
@@ -55,8 +55,8 @@ export const BOO_STOCK: ShopItem[] = [
 /** Big Bob's stall: boss skins, only once you have beaten the boss. */
 export const BOB_STOCK: ShopItem[] = [
   { kind: 'skin', id: 'shellcracker-own', skin: 'shellcracker', mode: 'own', label: 'Shellcracker', price: 100, texture: 'shellcracker-idle', blurb: 'own the Shellcracker skin for good' },
-  { kind: 'skin', id: 'shellcrackerMom-own', skin: 'shellcrackerMom', mode: 'own', label: "Shellcracker's Mom", price: 100, texture: 'shellcrackerMom-idle', blurb: 'own her skin after beating her' }, // placeholder: not Henry's number
-  { kind: 'skin', id: 'shellcrackerDad-own', skin: 'shellcrackerDad', mode: 'own', label: "Shellcracker's Dad", price: 100, texture: 'shellcrackerDad-idle', blurb: 'own his skin after beating him' }, // placeholder: not Henry's number
+  { kind: 'skin', id: 'shellcrackerMom-own', skin: 'shellcrackerMom', mode: 'own', label: "Shellcracker's Mom", price: 100, texture: 'shellcrackerMom-idle', blurb: 'own her skin after beating her' }, // Henry's number
+  { kind: 'skin', id: 'shellcrackerDad-own', skin: 'shellcrackerDad', mode: 'own', label: "Shellcracker's Dad", price: 100, texture: 'shellcrackerDad-idle', blurb: 'own his skin after beating him' }, // Henry's number
   { kind: 'skin', id: 'galacticRaider-own', skin: 'galacticRaider', mode: 'own', label: 'Galactic Raider', price: 100, texture: 'galacticRaider-idle', blurb: 'own the Galactic Raider skin for good' },
 ];
 

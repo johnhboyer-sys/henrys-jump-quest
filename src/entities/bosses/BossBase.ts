@@ -79,7 +79,6 @@ export abstract class BossBase extends Phaser.Physics.Arcade.Sprite {
 
     // Stomps and other ordinary attacks never hurt a boss. On a power-up-only
     // boss we say so out loud, because that is a rule the player must learn.
-    if (source === 'primrose' && !this.def.primroseOnly) return false;
     if (source !== 'primrose' && this.def.primroseOnly) { this.noteImmune(); return false; }
     if (source === 'stomp') {
       if (this.def.powerUpOnly) this.noteImmune();

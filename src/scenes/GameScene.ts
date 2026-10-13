@@ -32,7 +32,7 @@ import { createBoss, type BossBase, type HitSource } from '../entities/bosses';
 import { createEnemy, Enemy, type EnemyWorld } from '../entities/enemies';
 import type { EnemyKind } from '../config/enemies';
 import { buildBackdrop } from '../systems/Backdrop';
-import { SKINS, RAIDER_SWORD_FRACTION, isGodSkin, type AttackKind } from '../config/skins';
+import { SKINS, RAIDER_SWORD_FRACTION, PRIMROSE_SHOT_DAMAGE, isGodSkin, type AttackKind } from '../config/skins';
 import {
   recordLevelClear,
   loadSave,
@@ -889,13 +889,13 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     const blocked = () => this.player.isInvincible || (this.player.hasGodStar && !fromBoss);
     if (!this.player.isAlive || this.player.isInvulnerable || blocked()) return;
     this.stopPoison();
-    this.poisonTicks = 4; // placeholder: not Henry's number
+    this.poisonTicks = 4; // Henry's number
     this.player.setTint(0x76d957);
-    this.poisonTimer = this.time.addEvent({ delay: 1000, repeat: 3, callback: () => { // placeholder: not Henry's number
+    this.poisonTimer = this.time.addEvent({ delay: 1000, repeat: 3, callback: () => { // Henry's number
       if (this.finished || !this.player.isAlive) { this.stopPoison(); return; }
       this.poisonTicks -= 1;
       if (!blocked()) {
-        this.player.hp = Math.max(0, this.player.hp - 2); // placeholder: not Henry's number
+        this.player.hp = Math.max(0, this.player.hp - 2); // Henry's number
         play('hurt'); this.emitHud(); this.checkDeath();
       }
       if (this.poisonTicks <= 0) this.stopPoison();
@@ -914,12 +914,13 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     const boss = owner as BossBase;
     const cloud = follow ? this.add.image(this.player.x, 100, 'boss-thunder').setScale(0.35).setDepth(20) : undefined; // placeholder: not Henry's number
     let fired = 0;
-    const duration = follow ? 5000 : 3500; // placeholder: not Henry's number
+    const duration = follow ? 5000 : 3500; // Henry's number for the 5s cloud; the 3.5s rain is a placeholder
     const event = this.time.addEvent({ delay: 260, repeat: Math.ceil(duration / 260) - 1, callback: () => { // placeholder: not Henry's number
       if (!boss.active || this.finished) { event.remove(false); cloud?.destroy(); return; }
       if (cloud) cloud.x += (this.player.x - cloud.x) * 0.3; // placeholder: not Henry's number
       const x = cloud ? cloud.x : Phaser.Math.Between(Math.max(100, boss.x - 650), Math.min(this.level.worldWidth - 100, boss.x + 650)); // placeholder: not Henry's number
-      this.shoot(x, 80, { texture: 'proj-water', damage: 4, vx: 0, vy: 380, lifetimeMs: 2200, bossShot: true }); // placeholder: not Henry's number
+      // Henry: the Gardener's rain does 10 a drop; the Thunder Raider's chase cloud 4.
+      this.shoot(x, 80, { texture: 'proj-water', damage: follow ? 4 : 10, vx: 0, vy: 380, lifetimeMs: 2200, bossShot: true }); // placeholder: not Henry's number (speed, life)
       fired++;
       if (fired >= Math.ceil(duration / 260)) cloud?.destroy();
     } });
@@ -927,17 +928,17 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
 
   startLightningStrikes(owner: object): void {
     const boss = owner as BossBase;
-    for (let i = 0; i < 3; i++) { // placeholder: not Henry's number
+    for (let i = 0; i < 3; i++) { // Henry's number
       this.time.delayedCall(i * 700, () => { // placeholder: not Henry's number
         if (!boss.active || this.finished) return;
         const x = Phaser.Math.Clamp(this.player.x + (i === 0 ? 0 : (i === 1 ? -130 : 130)), 80, this.level.worldWidth - 80); // placeholder: not Henry's number
         const mark = this.add.rectangle(x, FLOOR_Y - 8, 70, 16, 0xffed65, 0.7).setDepth(20); // placeholder: not Henry's number
-        this.time.delayedCall(1000, () => { // placeholder: not Henry's number
+        this.time.delayedCall(1000, () => { // Henry's number
           mark.destroy();
           if (!boss.active || this.finished) return;
           const bolt = this.add.rectangle(x, FLOOR_Y / 2, 36, FLOOR_Y, 0xffed8a, 0.8).setDepth(21); // placeholder: not Henry's number
           this.time.delayedCall(180, () => bolt.destroy()); // placeholder: not Henry's number
-          if (Math.abs(this.player.x - x) < 42 && this.player.y > FLOOR_Y - 85 && this.player.takeDamage(15, x, true)) { // placeholder: not Henry's number
+          if (Math.abs(this.player.x - x) < 42 && this.player.y > FLOOR_Y - 85 && this.player.takeDamage(15, x, true)) { // Henry's number
             play('hurt'); this.emitHud(); this.checkDeath();
           }
         });
@@ -975,7 +976,6 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   private onShotHitsBoss(shot: Projectile): void {
     if (!shot.active || !this.boss || !this.boss.active) return;
     shot.pop();
-    if (shot.primroseShot && !this.boss.def.primroseOnly) return;
     play('stomp');
     // A fireball thrown while transformed hits far harder.
     const source: HitSource = shot.primroseShot ? 'primrose' : this.player.form === 'mushroom' ? 'mushroom' : 'fire';
@@ -1057,11 +1057,11 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
     const element = this.primroseNext;
     this.primroseNext = element === 'lightning' ? 'fire' : 'lightning';
     shot.fire(this.player.x + dir * 26, this.player.y - 34, element === 'fire' ? {
-      texture: 'proj-playerfire', damage: FIREBALL.damage, element, primroseShot: true,
+      texture: 'proj-playerfire', damage: PRIMROSE_SHOT_DAMAGE, element, primroseShot: true,
       vx: dir * FIREBALL.speed, vy: -120, gravity: FIREBALL.gravity,
       bounce: FIREBALL.bounce, lifetimeMs: FIREBALL.lifetimeMs, spin: dir * 420,
     } : {
-      texture: 'proj-lightning', damage: FIREBALL.damage, element, primroseShot: true,
+      texture: 'proj-lightning', damage: PRIMROSE_SHOT_DAMAGE, element, primroseShot: true,
       vx: dir * 900, vy: 0, lifetimeMs: 1200, // placeholder: not Henry's number
     });
     play('fire');

@@ -887,7 +887,7 @@ export class UIScene extends Phaser.Scene {
       game.scene.start(key, data);
     };
 
-    // The Llama Trader sets up shop after every normal level; Big Bob after a
+    // Boo Mommy Bag sets up shop after every normal level; Big Bob after a
     // boss. Click either to buy — same guarded leave() either way.
     if (d.merchant === 'bob') {
       for (const [lx, flip] of [
@@ -923,7 +923,7 @@ export class UIScene extends Phaser.Scene {
         .setDepth(52)
         .setInteractive({ useHandCursor: true });
       this.add
-        .text(1110, 440, 'Click The Llama Trader\nto go shopping!', {
+        .text(1110, 440, 'Click Boo Mommy Bag\nto go shopping!', {
           fontFamily: FONT,
           fontSize: '18px',
           color: '#ffd76b',

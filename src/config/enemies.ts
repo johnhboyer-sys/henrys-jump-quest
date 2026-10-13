@@ -64,12 +64,12 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
   },
 
   waterGuy: {
-    kind: 'waterGuy', texture: 'enemy-waterGuy', hp: 25, touchDamage: 12, // placeholder: not Henry's number (copied touch damage)
+    kind: 'waterGuy', texture: 'enemy-waterGuy', hp: 25, touchDamage: 12, // Henry's number
     speed: 90, stompable: false, bodyWidth: 44, bodyHeight: 50, // placeholder: not Henry's number
     aggroRange: 520, attackCooldownMs: 1700, scoreValue: 70, // placeholder: not Henry's number
   },
   poisonFlower: {
-    kind: 'poisonFlower', texture: 'enemy-poisonFlower', hp: 25, touchDamage: 12, // placeholder: not Henry's number (copied touch damage)
+    kind: 'poisonFlower', texture: 'enemy-poisonFlower', hp: 25, touchDamage: 12, // Henry's number
     speed: 0, stompable: false, bodyWidth: 44, bodyHeight: 50, // placeholder: not Henry's number
     aggroRange: 520, attackCooldownMs: 2100, scoreValue: 70, // placeholder: not Henry's number
   },

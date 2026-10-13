@@ -47,6 +47,9 @@ export interface SkinDef {
   attack?: SkinAttack;
 }
 
+/** Damage of each Primrose lightning bolt or fireball. Henry's number. */
+export const PRIMROSE_SHOT_DAMAGE = 12.5;
+
 /** The Galactic Raider's sword removes this fraction of a target's max HP per hit. */
 export const RAIDER_SWORD_FRACTION = 0.25;
 

@@ -107,7 +107,7 @@ export const SCORE = {
   hpBonusPerPoint: 5,
 } as const;
 
-/** Coins, which the Llama Trader's shop spends. Henry's numbers. */
+/** Coins, which Boo Mommy Bag's shop spends. Henry's numbers. */
 export const COIN_REWARD = {
   enemyKill: 2,
   boss: 300,

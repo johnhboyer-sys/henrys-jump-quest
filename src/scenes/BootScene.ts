@@ -604,7 +604,7 @@ export class BootScene extends Phaser.Scene {
 
   // -- Shopkeepers ----------------------------------------------------------
 
-  /** The Llama Trader: a stick man between the two llamas placed by the UI. */
+  /** Boo Mommy Bag: a stick man between the two llamas placed by the UI. */
   private makeMerchant(): void {
     this.tex('merchant-boo', 160, 210, (g) => {
       // placeholder: not Henry's number — stick man art coordinates and colours.

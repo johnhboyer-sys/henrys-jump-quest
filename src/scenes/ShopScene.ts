@@ -8,7 +8,7 @@ const FONT = 'monospace';
 
 type Merchant = 'boo' | 'bob';
 
-/** The Llama Trader's or Big Bob's shop. Opened from the level-clear card. */
+/** Boo Mommy Bag's or Big Bob's shop. Opened from the level-clear card. */
 export class ShopScene extends Phaser.Scene {
   private nextLevelId: number | null = null;
   private merchant: Merchant = 'boo';
@@ -62,7 +62,7 @@ export class ShopScene extends Phaser.Scene {
     }
 
     this.add
-      .text(440, 90, this.merchant === 'bob' ? "BIG BOB'S SHOP" : "THE LLAMA TRADER'S SHOP", {
+      .text(440, 90, this.merchant === 'bob' ? "BIG BOB'S SHOP" : "BOO MOMMY BAG'S SHOP", {
         fontFamily: FONT,
         fontSize: '40px',
         color: '#ffe27a',
