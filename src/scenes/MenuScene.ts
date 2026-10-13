@@ -3,7 +3,7 @@ import { VIEW } from '../config/game';
 import { LEVELS } from '../config/levels';
 import { loadSave, setSkin, availableSkins, type SaveData } from '../systems/SaveSystem';
 import { toggleMute, isMuted, play } from '../systems/SoundSystem';
-import { SKINS, type SkinId } from '../config/skins';
+import { SKINS, isGodSkin, type SkinId } from '../config/skins';
 import { getMode, setMode, type GameMode } from '../systems/ModeSystem';
 
 const FONT = 'monospace';
@@ -255,7 +255,15 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private refreshSkin(): void {
-    this.skinText.setText(`Playing as ${SKINS[this.skin].label.toUpperCase()}   (press S to swap)`);
+    // A save that won God Tom by beating the old last level (11) lost him when
+    // levels 12-16 arrived. Bought god skins stay owned, so they never show this.
+    const lost = isGodSkin(this.save.skin) && this.skin !== this.save.skin;
+    const lastId = LEVELS[LEVELS.length - 1].id;
+    this.skinText.setText(
+      lost
+        ? `Beat level ${lastId} to get ${SKINS[this.save.skin].label} back   (press S to swap)`
+        : `Playing as ${SKINS[this.skin].label.toUpperCase()}   (press S to swap)`,
+    );
   }
 
   /** Highlights whichever of Normal / Nearly Impossible is current. */
