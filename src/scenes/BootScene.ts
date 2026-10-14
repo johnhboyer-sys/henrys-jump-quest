@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { makeExpansionArt } from './ExpansionArt';
+import { makeTerrainTextures } from '../systems/Terrain';
+import { inkTexture } from '../systems/Paint';
 
 /**
  * Every texture in the game is drawn here in code — no image files, no asset
@@ -25,14 +27,42 @@ export class BootScene extends Phaser.Scene {
     this.makeAttackEffects();
     this.makePowerUps();
     this.makeBlocks();
-    this.makeTiles();
+    makeTerrainTextures(this);
     this.makeIcicle();
     this.makeFlags();
     this.makeMooMooHole();
     this.makeBits();
     makeExpansionArt(this);
+    this.inkAll();
 
     this.scene.start('Menu');
+  }
+
+  /**
+   * The cartoon finish: outlines and rim shading on everything solid — the
+   * cast, pickups, blocks and props. Glows, swings, sparks and hitboxes stay
+   * soft, so they are left off this list.
+   */
+  private inkAll(): void {
+    const skins = ['tom', 'henry', 'james', 'nurse', 'shellcracker', 'galacticRaider', 'tinyGuy', 'godTom', 'godHenry', 'shellcrackerMom', 'shellcrackerDad', 'primrose', 'godshroom'];
+    for (const skin of skins) {
+      for (const pose of ['idle', 'run1', 'run2', 'jump']) {
+        inkTexture(this, `${skin}-${pose}`, skin === 'tinyGuy' ? { width: 1.5 } : {});
+      }
+    }
+    for (const key of ['enemy-mushroom', 'enemy-firefoe', 'enemy-turtle', 'enemy-butterfly', 'enemy-kitty', 'enemy-waterGuy', 'enemy-poisonFlower']) {
+      inkTexture(this, key);
+    }
+    for (const key of ['boss-shellcracker', 'boss-raider', 'boss-shellcrackerMom', 'boss-kittyRaider', 'boss-shellcrackerDad', 'boss-gardener', 'boss-thunder', 'merchant-boo', 'merchant-bob', 'llama']) {
+      inkTexture(this, key, { width: 3, rim: 3 });
+    }
+    for (const key of [
+      'pw-cloud', 'pw-fireball', 'pw-heart', 'pw-star', 'pw-mushroom', 'pw-oneup', 'pw-kittysuit', 'pw-coin',
+      'block-question', 'block-used', 'icicle', 'flag-goal', 'flag-check-off', 'flag-check-on', 'hole-moomoo',
+      'proj-shell', 'proj-hand', 'proj-furball', 'proj-water', 'proj-poison', 'proj-rain', 'proj-spore', 'proj-playerfire', 'proj-galactic', 'prop-computer',
+    ]) {
+      inkTexture(this, key, { width: 1.5 });
+    }
   }
 
   /** Draw into a throwaway Graphics and bake it into a texture. */
@@ -109,6 +139,9 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xe8f1ff, 1);
       g.fillRect(16, 26, 20, 5);
     }
+    // A little shade along the bottom of the shirt, so it reads as rounded.
+    g.fillStyle(0x000000, 0.14);
+    g.fillRoundedRect(12, 41, 28, 7, { tl: 0, tr: 0, bl: 6, br: 6 });
 
     // Arms
     g.fillStyle(0xf6c9a0, 1);
@@ -140,12 +173,16 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0x7d5330, 1);
       g.fillRect(14, 14, 9, 4);
       g.fillRect(28, 14, 9, 4);
+      g.fillStyle(0x9a6a3e, 1);
+      g.fillRoundedRect(17, 6, 12, 3, 1.5);
     } else if (james) {
       g.fillStyle(0x1f6b3a, 1);
       g.fillRoundedRect(11, 4, 30, 12, 6);
       g.fillRect(11, 12, 30, 4);
       g.fillStyle(0x164f2a, 1);
       g.fillRect(36, 12, 12, 5);
+      g.fillStyle(0xffffff, 0.22);
+      g.fillRoundedRect(15, 6, 14, 3, 1.5);
     } else if (nurse) {
       // A white nurse cap with a red cross.
       g.fillStyle(0xffffff, 1);
@@ -159,6 +196,8 @@ export class BootScene extends Phaser.Scene {
       g.fillRect(11, 12, 30, 4);
       g.fillStyle(0xb01c30, 1);
       g.fillRect(36, 12, 12, 5);
+      g.fillStyle(0xffffff, 0.25);
+      g.fillRoundedRect(15, 6, 14, 3, 1.5);
     }
 
     // Eyes — Henry's are blue.
@@ -168,6 +207,12 @@ export class BootScene extends Phaser.Scene {
     g.fillStyle(henry ? 0x2f7fd4 : 0x18202e, 1);
     g.fillCircle(25, 21, 2.4);
     g.fillCircle(35, 21, 2.4);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(25.9, 20, 0.9);
+    g.fillCircle(35.9, 20, 0.9);
+    g.fillStyle(0xff7f7f, 0.4);
+    g.fillCircle(19, 26, 2.6);
+    g.fillCircle(38, 26, 2.4);
 
     // Grin
     g.lineStyle(2, 0xb5714b, 1);
@@ -309,9 +354,11 @@ export class BootScene extends Phaser.Scene {
 
   /** God Tom: Tom, but with a golden glow and a crown. */
   private drawGodTom(g: Phaser.GameObjects.Graphics, legs: 'stand' | 'runA' | 'runB' | 'air', henry = false): void {
-    // Golden aura, drawn behind the body.
-    g.fillStyle(0xffe27a, 0.3);
-    g.fillCircle(24, 30, 30);
+    // Golden aura, drawn behind the body: soft rings that fit the frame.
+    for (const r of [23, 19, 15]) {
+      g.fillStyle(0xffe27a, 0.12);
+      g.fillCircle(24, 32, r);
+    }
     this.drawKid(g, legs, henry ? 'henry' : 'tom');
     // A little crown, perched on top of the cap.
     g.fillStyle(0xffd700, 1);
@@ -999,165 +1046,84 @@ export class BootScene extends Phaser.Scene {
     });
 
     this.tex('pw-coin', 30, 30, (g) => {
-      g.fillStyle(0xf5b32b, 1);
-      g.fillCircle(15, 15, 14);
-      g.fillStyle(0xffd76b, 1);
-      g.fillCircle(15, 15, 10);
-      g.lineStyle(2.5, 0xc98a13, 1);
-      g.strokeCircle(15, 15, 14);
+      // Rim, face, and a raised centre lit from the top left.
       g.fillStyle(0xc98a13, 1);
-      g.fillRect(13, 8, 4, 14);
+      g.fillCircle(15, 15, 14);
+      g.fillStyle(0xf2ac25, 1);
+      g.fillCircle(15, 15, 12);
+      g.fillStyle(0xffd76b, 1);
+      g.fillCircle(14, 14, 9.5);
+      // The stamp, with a lit edge.
+      g.fillStyle(0xd9900f, 1);
+      g.fillRoundedRect(12.5, 8, 5, 14, 2);
+      g.fillStyle(0xfff0b0, 1);
+      g.fillRoundedRect(12.5, 8, 2, 14, 1);
+      // Glint.
+      g.fillStyle(0xffffff, 0.9);
+      g.fillEllipse(9.5, 9.5, 5, 3);
     });
   }
 
   // -- Blocks ---------------------------------------------------------------
 
   private makeBlocks(): void {
-    this.tex('block-question', 56, 56, (g) => {
-      g.fillStyle(0xe8a020, 1);
-      g.fillRoundedRect(0, 0, 56, 56, 6);
-      g.fillStyle(0xffc44d, 1);
-      g.fillRoundedRect(4, 4, 48, 44, 4);
-      g.fillStyle(0x9c5f08, 1);
+    // The question mark, drawn twice: once as a shadow, once on top.
+    const questionMark = (g: Phaser.GameObjects.Graphics, dx: number, dy: number) => {
+      g.fillRoundedRect(21 + dx, 14 + dy, 15, 7, 3);
+      g.fillRoundedRect(29 + dx, 18 + dy, 7, 11, 3);
+      g.fillRoundedRect(24 + dx, 26 + dy, 12, 7, 3);
+      g.fillRoundedRect(24 + dx, 31 + dy, 7, 6, 3);
+      g.fillRoundedRect(24 + dx, 40 + dy, 7, 7, 3);
+    };
+    const rivets = (g: Phaser.GameObjects.Graphics, dark: number, lit: number) => {
       for (const [cx, cy] of [
         [7, 7],
         [49, 7],
-        [7, 49],
-        [49, 49],
+        [7, 47],
+        [49, 47],
       ] as const) {
+        g.fillStyle(dark, 1);
         g.fillCircle(cx, cy, 3);
+        g.fillStyle(lit, 1);
+        g.fillCircle(cx - 0.8, cy - 0.8, 1.1);
       }
-      // The question mark
+    };
+
+    this.tex('block-question', 56, 56, (g) => {
+      // A darker lip along the bottom gives the block some depth.
+      g.fillStyle(0xb06d0c, 1);
+      g.fillRoundedRect(0, 0, 56, 56, 6);
+      g.fillStyle(0xe8a020, 1);
+      g.fillRoundedRect(0, 0, 56, 52, 6);
+      g.fillStyle(0xffc44d, 1);
+      g.fillRoundedRect(4, 4, 48, 42, 4);
+      g.fillStyle(0xffe08f, 1);
+      g.fillRoundedRect(6, 5, 44, 4, 2);
+      g.fillStyle(0xf0a830, 1);
+      g.fillRoundedRect(6, 41, 44, 4, 2);
+      rivets(g, 0x9c5f08, 0xffe08f);
+      g.fillStyle(0xd08a1a, 1);
+      questionMark(g, 2, 2);
       g.fillStyle(0x7a4405, 1);
-      g.fillRoundedRect(21, 14, 15, 7, 3);
-      g.fillRoundedRect(29, 18, 7, 11, 3);
-      g.fillRoundedRect(24, 26, 12, 7, 3);
-      g.fillRoundedRect(24, 31, 7, 6, 3);
-      g.fillRoundedRect(24, 40, 7, 7, 3);
+      questionMark(g, 0, 0);
     });
 
     this.tex('block-used', 56, 56, (g) => {
-      g.fillStyle(0x8a6a4a, 1);
+      g.fillStyle(0x6d5137, 1);
       g.fillRoundedRect(0, 0, 56, 56, 6);
+      g.fillStyle(0x8a6a4a, 1);
+      g.fillRoundedRect(0, 0, 56, 52, 6);
       g.fillStyle(0xa88257, 1);
-      g.fillRoundedRect(4, 4, 48, 44, 4);
+      g.fillRoundedRect(4, 4, 48, 42, 4);
+      g.fillStyle(0xbf9a6c, 1);
+      g.fillRoundedRect(6, 5, 44, 4, 2);
+      rivets(g, 0x6d5137, 0xbf9a6c);
       g.lineStyle(2, 0x6d5137, 1);
-      g.strokeRect(10, 12, 36, 28);
+      g.strokeRect(12, 13, 32, 24);
     });
   }
 
-  // -- Terrain --------------------------------------------------------------
-
-  private makeTiles(): void {
-    // Grass-topped dirt, used as a repeating 64px tile.
-    this.tex('tile-ground', 64, 64, (g) => {
-      g.fillStyle(0x6b4a2f, 1);
-      g.fillRect(0, 0, 64, 64);
-      g.fillStyle(0x7c573a, 1);
-      g.fillRect(8, 22, 18, 12);
-      g.fillRect(36, 40, 20, 12);
-      g.fillStyle(0x3fa34d, 1);
-      g.fillRect(0, 0, 64, 16);
-      g.fillStyle(0x54c265, 1);
-      g.fillRect(0, 0, 64, 7);
-    });
-
-    this.tex('tile-platform', 64, 24, (g) => {
-      g.fillStyle(0x6b4a2f, 1);
-      g.fillRect(0, 0, 64, 24);
-      g.fillStyle(0x3fa34d, 1);
-      g.fillRect(0, 0, 64, 9);
-      g.fillStyle(0x54c265, 1);
-      g.fillRect(0, 0, 64, 4);
-    });
-
-    // Snow over frozen rock, for the ice caves.
-    this.tex('tile-ground-snow', 64, 64, (g) => {
-      g.fillStyle(0x3d4a7a, 1);
-      g.fillRect(0, 0, 64, 64);
-      g.fillStyle(0x4a5890, 1);
-      g.fillRect(8, 24, 18, 12);
-      g.fillRect(36, 42, 20, 12);
-      g.fillStyle(0xdfe9ff, 1);
-      g.fillRect(0, 0, 64, 16);
-      g.fillStyle(0xffffff, 1);
-      g.fillRect(0, 0, 64, 8);
-    });
-
-    this.tex('tile-platform-snow', 64, 24, (g) => {
-      g.fillStyle(0x3d4a7a, 1);
-      g.fillRect(0, 0, 64, 24);
-      g.fillStyle(0xdfe9ff, 1);
-      g.fillRect(0, 0, 64, 9);
-      g.fillStyle(0xffffff, 1);
-      g.fillRect(0, 0, 64, 4);
-    });
-
-    // Wet sand, for the boss's shore.
-    this.tex('tile-ground-sand', 64, 64, (g) => {
-      g.fillStyle(0x9c7448, 1);
-      g.fillRect(0, 0, 64, 64);
-      g.fillStyle(0xad8455, 1);
-      g.fillRect(8, 26, 18, 12);
-      g.fillRect(36, 44, 20, 12);
-      g.fillStyle(0xe8cd94, 1);
-      g.fillRect(0, 0, 64, 16);
-      g.fillStyle(0xf5e3b8, 1);
-      g.fillRect(0, 0, 64, 7);
-      g.fillStyle(0xcbb27f, 1);
-      g.fillCircle(20, 11, 3);
-      g.fillCircle(46, 9, 2.4);
-    });
-
-    this.tex('tile-platform-sand', 64, 24, (g) => {
-      g.fillStyle(0x9c7448, 1);
-      g.fillRect(0, 0, 64, 24);
-      g.fillStyle(0xe8cd94, 1);
-      g.fillRect(0, 0, 64, 9);
-      g.fillStyle(0xf5e3b8, 1);
-      g.fillRect(0, 0, 64, 4);
-    });
-
-    // Star-flecked rock, for the galactic levels.
-    this.tex('tile-ground-star', 64, 64, (g) => {
-      g.fillStyle(0x241a44, 1);
-      g.fillRect(0, 0, 64, 64);
-      g.fillStyle(0x2f2258, 1);
-      g.fillRect(8, 26, 18, 12);
-      g.fillRect(36, 44, 20, 12);
-      g.fillStyle(0x6b53c4, 1);
-      g.fillRect(0, 0, 64, 14);
-      g.fillStyle(0xa38dff, 1);
-      g.fillRect(0, 0, 64, 6);
-      g.fillStyle(0xfff0a8, 1);
-      g.fillCircle(14, 34, 1.6);
-      g.fillCircle(44, 26, 1.4);
-      g.fillCircle(30, 52, 1.8);
-    });
-
-    this.tex('tile-platform-star', 64, 24, (g) => {
-      g.fillStyle(0x241a44, 1);
-      g.fillRect(0, 0, 64, 24);
-      g.fillStyle(0x6b53c4, 1);
-      g.fillRect(0, 0, 64, 9);
-      g.fillStyle(0xa38dff, 1);
-      g.fillRect(0, 0, 64, 4);
-      g.fillStyle(0xfff0a8, 1);
-      g.fillCircle(20, 16, 1.4);
-      g.fillCircle(48, 18, 1.2);
-    });
-
-    // Slippery ice.
-    this.tex('tile-ice', 64, 24, (g) => {
-      g.fillStyle(0x6fb7d8, 1);
-      g.fillRect(0, 0, 64, 24);
-      g.fillStyle(0xa8dcf0, 1);
-      g.fillRect(0, 0, 64, 8);
-      g.fillStyle(0xd8f3ff, 1);
-      g.fillRect(6, 2, 16, 3);
-      g.fillRect(38, 2, 12, 3);
-    });
-  }
+  // Terrain textures live in systems/Terrain.ts.
 
   private makeIcicle(): void {
     this.tex('icicle', 26, 64, (g) => {
@@ -1171,35 +1137,49 @@ export class BootScene extends Phaser.Scene {
   }
 
   private makeFlags(): void {
-    const pole = (g: Phaser.GameObjects.Graphics) => {
-      g.fillStyle(0xc9c9d4, 1);
-      g.fillRect(4, 0, 8, 120);
-      g.fillStyle(0x8f8fa0, 1);
-      g.fillRect(0, 112, 16, 8);
+    // A shaded pole with a ball on top and a stone foot.
+    const pole = (g: Phaser.GameObjects.Graphics, ball: number) => {
+      g.fillStyle(0xa9aab8, 1);
+      g.fillRect(5, 8, 7, 106);
+      g.fillStyle(0xe6e7ef, 1);
+      g.fillRect(6, 8, 2, 106);
+      g.fillStyle(0x6f7083, 1);
+      g.fillRoundedRect(0, 110, 17, 10, 3);
+      g.fillStyle(0x8f90a3, 1);
+      g.fillRoundedRect(1, 110, 15, 4, 2);
+      g.fillStyle(ball, 1);
+      g.fillCircle(8.5, 6, 5.5);
+      g.fillStyle(0xffffff, 0.7);
+      g.fillCircle(7, 4.5, 1.8);
+    };
+    // A pennant with a fold: the lower half sits in shadow.
+    const pennant = (g: Phaser.GameObjects.Graphics, top: number, tipX: number, bottom: number, lit: number, dark: number) => {
+      const mid = (top + bottom) / 2;
+      g.fillStyle(lit, 1);
+      g.fillTriangle(12, top, tipX, mid, 12, bottom);
+      g.fillStyle(dark, 1);
+      g.fillTriangle(12, mid + 2, tipX, mid, 12, bottom);
     };
 
     this.tex('flag-goal', 76, 120, (g) => {
-      pole(g);
-      g.fillStyle(0x2ecc71, 1);
-      g.fillTriangle(12, 8, 74, 26, 12, 46);
+      pole(g, 0xffd12b);
+      pennant(g, 10, 74, 46, 0x2ecc71, 0x22a85a);
       g.fillStyle(0xffffff, 1);
-      g.fillCircle(34, 26, 7);
+      g.fillCircle(32, 28, 7);
       g.fillStyle(0x2ecc71, 1);
-      g.fillCircle(34, 26, 3.5);
+      g.fillCircle(32, 28, 3.5);
     });
 
     this.tex('flag-check-off', 76, 120, (g) => {
-      pole(g);
-      g.fillStyle(0x7a8391, 1);
-      g.fillTriangle(12, 10, 62, 26, 12, 42);
+      pole(g, 0x9a9cab);
+      pennant(g, 12, 62, 42, 0x7a8391, 0x646c79);
     });
 
     this.tex('flag-check-on', 76, 120, (g) => {
-      pole(g);
-      g.fillStyle(0x3aa9ff, 1);
-      g.fillTriangle(12, 8, 70, 26, 12, 44);
+      pole(g, 0xffd12b);
+      pennant(g, 10, 70, 44, 0x3aa9ff, 0x2386d6);
       g.fillStyle(0xffffff, 1);
-      g.fillTriangle(26, 22, 40, 22, 33, 34);
+      g.fillTriangle(24, 21, 38, 21, 31, 33);
     });
   }
 
@@ -1239,6 +1219,15 @@ export class BootScene extends Phaser.Scene {
       g.fillCircle(34, 19, 16);
       g.fillCircle(48, 25, 11);
       g.fillRect(18, 24, 30, 12);
+    });
+
+    // A soft puff of dust from the player's feet on a jump or a hard landing.
+    this.tex('dust', 24, 18, (g) => {
+      g.fillStyle(0xffffff, 0.55);
+      g.fillCircle(8, 11, 6);
+      g.fillCircle(15, 9, 7);
+      g.fillStyle(0xffffff, 0.8);
+      g.fillCircle(12, 10, 4.5);
     });
 
     // Generic 6px square used for sparks, coin pops and hit flashes.

@@ -46,6 +46,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private jumpCutUsed = true;
   private runFrameTimer = 0;
   private runFrame = 0;
+  /** Last frame's footing and fall speed, so a hard landing can kick up dust. */
+  private wasGrounded = true;
+  private lastFallSpeed = 0;
   private lastAttackAt = -Infinity;
   private lastScratchAt = -Infinity;
 
@@ -167,6 +170,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.lastGroundedAt = now;
       this.airJumpsLeft = this.airJumpAllowance;
     }
+    const onGround = body.blocked.down || body.touching.down;
+    if (onGround && !this.wasGrounded && this.lastFallSpeed > 380) this.kickDust();
+    this.wasGrounded = onGround;
+    this.lastFallSpeed = body.velocity.y;
 
     // Frozen: no input at all, but gravity still applies.
     if (this.isFrozen) {
@@ -217,6 +224,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     if (wantsJump) {
       if (grounded || coyoteOk) {
+        if (grounded) this.kickDust();
         body.setVelocityY(this.currentJumpVelocity);
         this.jumpPressedAt = -Infinity;
         this.lastGroundedAt = -Infinity;
@@ -468,6 +476,24 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   // -- Presentation ---------------------------------------------------------
+
+  /** Two puffs of dust from the feet, one each way. Purely for looks. */
+  private kickDust(): void {
+    const feetY = (this.body as Phaser.Physics.Arcade.Body).bottom;
+    for (const dir of [-1, 1]) {
+      const puff = this.scene.add.image(this.x + dir * 6, feetY - 5, 'dust').setDepth(19).setScale(0.45).setAlpha(0.85);
+      this.scene.tweens.add({
+        targets: puff,
+        x: puff.x + dir * 20,
+        y: puff.y - 6,
+        scale: 1,
+        alpha: 0,
+        duration: 360,
+        ease: 'Quad.Out',
+        onComplete: () => puff.destroy(),
+      });
+    }
+  }
 
   /** Texture key for a pose in the current skin, or the mushroom form. */
   private frame0(pose: 'idle' | 'run1' | 'run2' | 'jump'): string {

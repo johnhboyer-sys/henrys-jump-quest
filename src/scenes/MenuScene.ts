@@ -5,6 +5,8 @@ import { loadSave, setSkin, availableSkins, type SaveData } from '../systems/Sav
 import { toggleMute, isMuted, play } from '../systems/SoundSystem';
 import { SKINS, isGodSkin, type SkinId } from '../config/skins';
 import { getMode, setMode, type GameMode } from '../systems/ModeSystem';
+import { buildMenuBackdrop } from '../systems/Backdrop';
+import { dressSlab, surfaceLook } from '../systems/Terrain';
 
 const FONT = 'monospace';
 
@@ -33,21 +35,20 @@ export class MenuScene extends Phaser.Scene {
     this.selected = 0;
     this.mode = getMode();
 
-    // Sky and hills, so the menu looks like the game rather than a form.
-    const g = this.add.graphics();
-    g.fillStyle(0x1b2450, 1);
-    g.fillRect(0, 0, VIEW.width, VIEW.height);
-    g.fillStyle(0x27356e, 1);
-    g.fillRect(0, 260, VIEW.width, VIEW.height - 260);
-    g.fillStyle(0x2f7d4a, 1);
-    for (let x = -80; x < VIEW.width + 160; x += 190) g.fillCircle(x, 640, 150);
-    g.fillStyle(0x3fa34d, 1);
-    g.fillRect(0, 660, VIEW.width, 60);
+    // Green Hills by night, standing on real ground, so the menu looks like
+    // the game rather than a form.
+    buildMenuBackdrop(this);
+    const ground = { x: -20, y: 640, w: VIEW.width + 40, h: 80 };
+    const look = surfaceLook('grass', 'ground');
+    this.add.tileSprite(ground.x, ground.y, ground.w, ground.h, look.fill).setOrigin(0, 0).setDepth(-10);
+    dressSlab(this, ground, look, -10);
 
-    for (let i = 0; i < 26; i++) {
-      g.fillStyle(0xffffff, 0.5 + ((i * 37) % 40) / 100);
-      g.fillCircle((i * 251) % VIEW.width, (i * 89) % 240, 1.6);
-    }
+    // Dark glass behind the mode switch and level list, so they stay easy to read.
+    const glass = this.add.graphics().setDepth(-5);
+    glass.fillStyle(0x0b1020, 0.55);
+    glass.fillRoundedRect(cx - 430, 108, 860, 264, 16);
+    glass.lineStyle(2, 0xffffff, 0.16);
+    glass.strokeRoundedRect(cx - 429, 109, 858, 262, 15);
 
     // Cast members, standing about on the title screen.
     this.add.image(150, 640, 'enemy-mushroom').setOrigin(0.5, 1);
@@ -72,21 +73,32 @@ export class MenuScene extends Phaser.Scene {
       ease: 'Sine.InOut',
     });
 
-    this.add
+    const title = this.add
       .text(cx, 56, 'JUMP QUEST', {
         fontFamily: FONT,
         fontSize: '62px',
+        fontStyle: 'bold',
         color: '#ffe27a',
-        stroke: '#000000',
-        strokeThickness: 9,
+        stroke: '#1d1830',
+        strokeThickness: 10,
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setShadow(0, 6, '#05081a', 0, true, true);
+    // Sunny gold, lighter at the top of the letters.
+    const gold = title.context.createLinearGradient(0, 10, 0, title.height - 10);
+    gold.addColorStop(0, '#fff6c2');
+    gold.addColorStop(0.5, '#ffd84a');
+    gold.addColorStop(1, '#ff9f1c');
+    title.setFill(gold);
+    this.tweens.add({ targets: title, y: 50, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
 
     this.add
-      .text(cx, 98, 'Henry and Tom vs. Shellcracker', {
+      .text(cx, 96, 'Henry and Tom vs. Shellcracker', {
         fontFamily: FONT,
         fontSize: '18px',
-        color: '#9fd8f0',
+        color: '#bfe6f7',
+        stroke: '#0b1020',
+        strokeThickness: 4,
       })
       .setOrigin(0.5);
 
@@ -151,7 +163,7 @@ export class MenuScene extends Phaser.Scene {
     const gridBottom = gridTop + (rowsPerCol - 1) * rowH + 24;
 
     this.skinText = this.add
-      .text(cx, gridBottom + 24, '', { fontFamily: FONT, fontSize: '20px', color: '#ffe27a' })
+      .text(cx, gridBottom + 24, '', { fontFamily: FONT, fontSize: '20px', color: '#ffe27a', stroke: '#0b1020', strokeThickness: 4 })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
     this.skinText.on('pointerdown', () => this.swapSkin());
@@ -159,35 +171,39 @@ export class MenuScene extends Phaser.Scene {
     // A tappable PLAY button, doing what ENTER/SPACE already do.
     const playY = gridBottom + 58;
     const playBg = this.add
-      .rectangle(cx, playY, 160, 48, 0xffe27a, 0.18)
-      .setStrokeStyle(2, 0xffe27a, 0.6)
+      .rectangle(cx, playY, 160, 48, 0xffd84a, 0.9)
+      .setStrokeStyle(3, 0x1d1830, 1)
       .setInteractive({ useHandCursor: true });
     this.add
-      .text(cx, playY, 'PLAY', { fontFamily: FONT, fontSize: '22px', color: '#ffe27a' })
+      .text(cx, playY, 'PLAY', { fontFamily: FONT, fontSize: '24px', fontStyle: 'bold', color: '#3a2205' })
       .setOrigin(0.5);
+    playBg.on('pointerover', () => playBg.setFillStyle(0xfff0a0, 1));
+    playBg.on('pointerout', () => playBg.setFillStyle(0xffd84a, 0.9));
     playBg.on('pointerdown', () => this.start());
 
     this.add
-      .text(cx, gridBottom + 104, '↑ ↓ choose level   ← → mode   ENTER start   S skin   M mute', {
+      .text(cx, gridBottom + 96, '↑ ↓ choose level   ← → mode   ENTER start   S skin   M mute', {
         fontFamily: FONT,
         fontSize: '16px',
-        color: '#cfd9e8',
+        color: '#e3ebf5',
+        stroke: '#0b1020',
+        strokeThickness: 4,
       })
       .setOrigin(0.5);
 
     this.add
       .text(
         cx,
-        gridBottom + 140,
+        gridBottom + 134,
         '← → run    ↑ jump    ↓ use power-up    ESC pause\n' +
           'Cloud = double jump    Fireball = throw fire\n' +
           'Star and God Mushroom make you unstoppable for a while',
-        { fontFamily: FONT, fontSize: '15px', color: '#9fd8f0', align: 'center' },
+        { fontFamily: FONT, fontSize: '14px', color: '#bfe6f7', align: 'center', stroke: '#0b1020', strokeThickness: 4, lineSpacing: 2 },
       )
       .setOrigin(0.5);
 
     this.oneUpText = this.add
-      .text(20, VIEW.height - 28, '', { fontFamily: FONT, fontSize: '16px', color: '#7ee6a0' })
+      .text(20, VIEW.height - 28, '', { fontFamily: FONT, fontSize: '16px', color: '#7ee6a0', stroke: '#0b1020', strokeThickness: 4 })
       .setOrigin(0, 0.5);
     const bank = [`Coins: ${save.totalCoins}`];
     if (save.oneUps > 0) bank.push(`1-UPs banked: ${save.oneUps}`);
@@ -197,7 +213,9 @@ export class MenuScene extends Phaser.Scene {
       .text(VIEW.width - 20, VIEW.height - 28, '', {
         fontFamily: FONT,
         fontSize: '16px',
-        color: '#cfd9e8',
+        color: '#e3ebf5',
+        stroke: '#0b1020',
+        strokeThickness: 4,
       })
       .setOrigin(1, 0.5)
       .setInteractive({ useHandCursor: true });

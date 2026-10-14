@@ -30,18 +30,148 @@ export function makeExpansionArt(scene: Phaser.Scene): void {
   });
   tex('proj-water', 24, 28, (g) => { g.fillStyle(0x45baff, 1); g.fillTriangle(12, 1, 2, 18, 22, 18); g.fillEllipse(12, 19, 20, 16); }); // placeholder: not Henry's number
   tex('proj-poison', 26, 26, (g) => { g.fillStyle(0x80d14b, 1); g.fillCircle(13, 13, 11); g.fillStyle(0xc8ff87, 1); g.fillCircle(9, 9, 4); }); // placeholder: not Henry's number
-  tex('boss-gardener', 190, 170, (g) => { // placeholder: not Henry's number
-    g.fillStyle(0x6b472d, 1); g.fillEllipse(95, 98, 155, 120); g.fillStyle(0x438c54, 1); g.fillRoundedRect(62, 82, 72, 78, 8); // placeholder: not Henry's number
-    g.fillStyle(0x314f27, 1); g.fillRect(32, 31, 126, 12); g.fillRoundedRect(55, 4, 82, 35, 9); // placeholder: not Henry's number
-    g.fillStyle(0xc9e3a0, 1); g.fillCircle(72, 79, 10); g.fillCircle(116, 79, 10); // placeholder: not Henry's number
-    g.fillStyle(0x1c3029, 1); g.fillCircle(72, 79, 4); g.fillCircle(116, 79, 4); // placeholder: not Henry's number
-    g.fillStyle(0x6d9dbc, 1); g.fillRoundedRect(142, 100, 34, 42, 6); g.lineStyle(6, 0x6d9dbc, 1); g.strokeCircle(174, 109, 12); // placeholder: not Henry's number
+  // Gardener Shellcracker: a garden growing on its shell, a straw hat and a
+  // watering can. placeholder: not Henry's number — shapes, sizes and colours.
+  tex('boss-gardener', 190, 170, (g) => {
+    // Shell, with a moss bed and flowers along its top.
+    g.fillStyle(0x5a3a22, 1);
+    g.fillEllipse(95, 98, 180, 132);
+    g.fillStyle(0x7a5232, 1);
+    g.fillEllipse(95, 96, 172, 122);
+    g.lineStyle(3, 0x5a3a22, 1);
+    g.strokeEllipse(95, 100, 132, 84);
+    for (let i = 0; i <= 8; i++) {
+      const a = Math.PI + 0.35 + (i / 8) * (Math.PI - 0.7);
+      const x = 95 + Math.cos(a) * 78;
+      const y = 98 + Math.sin(a) * 56;
+      g.fillStyle(0x4f9a45, 1);
+      g.fillCircle(x, y, 13);
+      g.fillStyle(0x6fbf5a, 1);
+      g.fillCircle(x - 3, y - 4, 7);
+    }
+    for (const [x, y, petal] of [
+      [30, 70, 0xff8fb8],
+      [58, 46, 0xffe27a],
+      [140, 48, 0xff8fb8],
+      [164, 72, 0xffffff],
+    ] as const) {
+      g.fillStyle(petal, 1);
+      for (let k = 0; k < 5; k++) g.fillCircle(x + Math.cos((k * Math.PI * 2) / 5) * 4, y + Math.sin((k * Math.PI * 2) / 5) * 4, 3.2);
+      g.fillStyle(0xf2a531, 1);
+      g.fillCircle(x, y, 2.4);
+    }
+    // Left arm and feet, behind the body.
+    g.fillStyle(0x5aa64f, 1);
+    g.fillRoundedRect(38, 96, 20, 44, 9);
+    g.fillEllipse(70, 162, 38, 16);
+    g.fillEllipse(120, 162, 38, 16);
+    // Body and overalls.
+    g.fillStyle(0x6fbf62, 1);
+    g.fillRoundedRect(52, 76, 86, 86, 30);
+    g.fillStyle(0x3f6fa8, 1);
+    g.fillRoundedRect(56, 120, 78, 42, 16);
+    g.fillRoundedRect(72, 100, 46, 28, 6);
+    g.lineStyle(5, 0x3f6fa8, 1);
+    g.lineBetween(74, 102, 66, 84);
+    g.lineBetween(116, 102, 124, 84);
+    g.fillStyle(0xffd55d, 1);
+    g.fillCircle(77, 106, 3);
+    g.fillCircle(113, 106, 3);
+    // A flower in the bib pocket.
+    g.fillStyle(0x2f5f8f, 1);
+    g.fillRoundedRect(85, 110, 20, 14, 3);
+    g.lineStyle(2, 0x3f8a3a, 1);
+    g.lineBetween(95, 110, 95, 98);
+    g.fillStyle(0xff6f6f, 1);
+    g.fillCircle(95, 96, 4.5);
+    g.fillStyle(0xffe27a, 1);
+    g.fillCircle(95, 96, 1.8);
+    // Head and a cross face.
+    g.fillStyle(0x6fbf62, 1);
+    g.fillEllipse(95, 72, 88, 60);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(78, 72, 10);
+    g.fillCircle(112, 72, 10);
+    g.fillStyle(0x1c3029, 1);
+    g.fillCircle(80, 74, 4.5);
+    g.fillCircle(110, 74, 4.5);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(81.5, 72.5, 1.4);
+    g.fillCircle(111.5, 72.5, 1.4);
+    g.lineStyle(4, 0x2f6b2a, 1);
+    g.lineBetween(66, 58, 88, 64);
+    g.lineBetween(124, 58, 102, 64);
+    g.lineStyle(3, 0x2a4a22, 1);
+    g.beginPath();
+    g.arc(95, 84, 11, 0.35, Math.PI - 0.35);
+    g.strokePath();
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(97, 92, 5, 4);
+    // Straw hat with a green band and a flower.
+    g.fillStyle(0xc49a45, 1);
+    g.fillEllipse(95, 47, 150, 18);
+    g.fillStyle(0xe0b75a, 1);
+    g.fillEllipse(95, 43, 150, 20);
+    g.fillStyle(0xe8c46a, 1);
+    g.fillRoundedRect(62, 8, 66, 38, 14);
+    g.fillStyle(0xf5d98a, 1);
+    g.fillRoundedRect(68, 12, 18, 22, 8);
+    g.fillStyle(0x3f7a3a, 1);
+    g.fillRect(62, 31, 66, 8);
+    g.fillStyle(0xff6f6f, 1);
+    for (let k = 0; k < 5; k++) g.fillCircle(116 + Math.cos((k * Math.PI * 2) / 5) * 4, 35 + Math.sin((k * Math.PI * 2) / 5) * 4, 3.2);
+    g.fillStyle(0xffe27a, 1);
+    g.fillCircle(116, 35, 2.2);
+    // Right arm holding the watering can.
+    g.fillStyle(0x5aa64f, 1);
+    g.fillRoundedRect(132, 92, 18, 36, 8);
+    g.lineStyle(5, 0x5a87a6, 1);
+    g.beginPath();
+    g.arc(160, 110, 13, Math.PI, 0);
+    g.strokePath();
+    g.lineStyle(6, 0x6d9dbc, 1);
+    g.lineBetween(176, 124, 184, 102);
+    g.fillStyle(0x6d9dbc, 1);
+    g.fillRoundedRect(142, 108, 38, 40, 6);
+    g.fillStyle(0x8fbcd8, 1);
+    g.fillRoundedRect(146, 112, 10, 30, 4);
+    g.fillStyle(0x5a87a6, 1);
+    g.fillRect(142, 108, 38, 5);
+    g.fillCircle(185, 100, 5);
+    g.fillStyle(0x6fbf62, 1);
+    g.fillCircle(146, 124, 7);
   });
-  tex('boss-thunder', 190, 140, (g) => { // placeholder: not Henry's number
-    g.fillStyle(0x303e59, 1); g.fillEllipse(90, 84, 164, 76); g.fillCircle(49, 60, 38); g.fillCircle(95, 46, 48); g.fillCircle(139, 62, 39); // placeholder: not Henry's number
-    g.fillStyle(0xb8d6ff, 1); g.fillCircle(68, 80, 8); g.fillCircle(117, 80, 8); // placeholder: not Henry's number
-    g.fillStyle(0x192638, 1); g.fillCircle(68, 81, 4); g.fillCircle(117, 81, 4); // placeholder: not Henry's number
-    g.fillStyle(0xffe967, 1); g.fillTriangle(91, 96, 109, 96, 91, 130); g.fillTriangle(91, 130, 79, 130, 101, 107); // placeholder: not Henry's number
+
+  // Thunder Raider: a storm cloud in a raider's visor, crowned with a bolt.
+  // placeholder: not Henry's number — shapes, sizes and colours.
+  tex('boss-thunder', 190, 140, (g) => {
+    const bolt = (pts: [number, number][]) => g.fillPoints(pts.map(([x, y]) => new Phaser.Geom.Point(x, y)), true);
+    // Cloud body: a dark mass with lighter puffs on top.
+    g.fillStyle(0x2c3a55, 1);
+    for (const [x, y, r] of [[50, 72, 40], [95, 56, 50], [142, 70, 42], [164, 90, 20], [24, 92, 20]] as const) g.fillCircle(x, y, r);
+    g.fillEllipse(95, 94, 176, 50);
+    g.fillStyle(0x46587a, 1);
+    for (const [x, y, r] of [[46, 68, 31], [90, 50, 39], [138, 64, 33]] as const) g.fillCircle(x, y, r);
+    g.fillStyle(0x2c3a55, 1);
+    for (const [x, y, r] of [[50, 76, 28], [95, 60, 36], [142, 72, 30]] as const) g.fillCircle(x, y, r);
+    g.fillEllipse(95, 94, 150, 40);
+    g.fillStyle(0x1d263b, 1);
+    g.fillEllipse(95, 108, 150, 20);
+    // Bolt hanging underneath.
+    g.fillStyle(0xffe967, 1);
+    bolt([[88, 104], [110, 104], [100, 117], [113, 117], [84, 140], [93, 122], [80, 122]]);
+    // Raider's visor with glowing eyes.
+    g.fillStyle(0x161d30, 1);
+    g.fillRoundedRect(50, 70, 90, 26, 12);
+    g.fillStyle(0x9fd6ff, 1);
+    g.fillRoundedRect(62, 77, 22, 11, 5);
+    g.fillRoundedRect(106, 77, 22, 11, 5);
+    g.fillStyle(0xeaf6ff, 1);
+    g.fillRoundedRect(66, 79, 12, 4, 2);
+    g.fillRoundedRect(110, 79, 12, 4, 2);
+    // Crest.
+    g.fillStyle(0xffe967, 1);
+    bolt([[100, 0], [84, 22], [95, 22], [88, 38], [110, 13], [99, 13], [106, 0]]);
   });
 
   // -- Kitty enemy ------------------------------------------------------------
