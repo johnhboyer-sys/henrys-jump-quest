@@ -80,6 +80,44 @@ interface TouchButton {
   kind: 'always' | 'attack' | 'heal';
 }
 
+/** Dark outline for HUD text that sits straight on the sky. */
+const HUD_INK = '#0b1020';
+
+/** A HUD panel: a dark glass card with a faint light rim. */
+function hudPanel(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number): void {
+  g.fillStyle(0x0b1020, 0.55);
+  g.fillRoundedRect(x, y, w, h, 12);
+  g.lineStyle(2, 0xffffff, 0.2);
+  g.strokeRoundedRect(x + 1, y + 1, w - 2, h - 2, 11);
+}
+
+/** A rounded meter: track, fill, and a shine along the top of the fill. */
+function hudBar(
+  g: Phaser.GameObjects.Graphics,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  frac: number,
+  colour: number,
+  track: number,
+  trackAlpha = 1,
+): void {
+  const r = Math.min(6, h / 2);
+  g.fillStyle(track, trackAlpha);
+  g.fillRoundedRect(x, y, w, h, r);
+  const fw = (w - 4) * frac;
+  if (fw >= 2) {
+    const fr = Math.min(r - 1, fw / 2);
+    g.fillStyle(colour, 1);
+    g.fillRoundedRect(x + 2, y + 2, fw, h - 4, fr);
+    if (fw > 12) {
+      g.fillStyle(0xffffff, 0.3);
+      g.fillRoundedRect(x + 4, y + 4, fw - 4, (h - 4) / 3, (h - 4) / 6);
+    }
+  }
+}
+
 /**
  * Everything drawn on top of the world. Runs as its own scene so nothing here
  * scrolls with the camera or gets tangled up in the physics world.
@@ -148,8 +186,7 @@ export class UIScene extends Phaser.Scene {
     this.pauseExtras = [];
     this.pauseDigitHandler = undefined;
     const panel = this.add.graphics().setDepth(0);
-    panel.fillStyle(0x000000, 0.35);
-    panel.fillRoundedRect(16, 14, 430, 74, 10);
+    hudPanel(panel, 16, 14, 430, 74);
 
     this.add
       .text(30, 24, 'HP', { fontFamily: FONT, fontSize: '18px', color: '#ffffff' })
@@ -175,6 +212,8 @@ export class UIScene extends Phaser.Scene {
         fontFamily: FONT,
         fontSize: '18px',
         color: '#ffffff',
+        stroke: HUD_INK,
+        strokeThickness: 4,
       })
       .setOrigin(1, 0)
       .setDepth(2);
@@ -188,7 +227,9 @@ export class UIScene extends Phaser.Scene {
       .text(VIEW.width - 24, 50, helpLine, {
         fontFamily: FONT,
         fontSize: '14px',
-        color: '#cfd9e8',
+        color: '#e3ebf5',
+        stroke: HUD_INK,
+        strokeThickness: 3,
       })
       .setOrigin(1, 0)
       .setDepth(2);
@@ -199,14 +240,15 @@ export class UIScene extends Phaser.Scene {
         fontFamily: FONT,
         fontSize: '14px',
         color: '#ffe27a',
+        stroke: HUD_INK,
+        strokeThickness: 3,
       })
       .setOrigin(1, 0)
       .setDepth(2);
 
     // Held power-up slot.
     const slot = this.add.graphics().setDepth(0);
-    slot.fillStyle(0x000000, 0.35);
-    slot.fillRoundedRect(460, 14, 190, 74, 10);
+    hudPanel(slot, 460, 14, 190, 74);
     this.powerIcon = this.add.image(496, 51, 'pw-coin').setDepth(2).setVisible(false);
     this.powerText = this.add
       .text(524, 30, '', { fontFamily: FONT, fontSize: '15px', color: '#ffffff' })
@@ -477,13 +519,10 @@ export class UIScene extends Phaser.Scene {
     const { hp, maxHp, score, coins, held, charges } = this.hud;
 
     this.hpBar.clear();
-    this.hpBar.fillStyle(0x2a2f3d, 1);
-    this.hpBar.fillRoundedRect(68, 22, 240, 22, 6);
     const frac = Phaser.Math.Clamp(hp / maxHp, 0, 1);
     // Green when healthy, amber when hurt, red when nearly gone.
     const colour = frac > 0.55 ? 0x4ad66d : frac > 0.25 ? 0xf5b32b : 0xe5484d;
-    this.hpBar.fillStyle(colour, 1);
-    this.hpBar.fillRoundedRect(70, 24, Math.max(0, 236 * frac), 18, 5);
+    hudBar(this.hpBar, 68, 22, 240, 22, frac, colour, 0x1c2130);
 
     this.hpText.setText(`${hp}/${maxHp}`).setPosition(320, 24);
     this.scoreText.setText(`SCORE ${score}`);
@@ -517,10 +556,7 @@ export class UIScene extends Phaser.Scene {
     if (this.hud.form !== 'none' && this.hud.formMs > 0) {
       const total = this.hud.formTotalMs || 1;
       const frac = Phaser.Math.Clamp(this.hud.formMs / total, 0, 1);
-      this.formBar.fillStyle(0x000000, 0.4);
-      this.formBar.fillRoundedRect(456, 92, 198, 24, 6);
-      this.formBar.fillStyle(this.hud.form === 'star' ? 0xffd12b : 0x8ef0a8, 1);
-      this.formBar.fillRect(460, 96, 190 * frac, 16);
+      hudBar(this.formBar, 456, 92, 198, 24, frac, this.hud.form === 'star' ? 0xffd12b : 0x8ef0a8, 0x0b1020, 0.6);
       this.formText.setText(this.hud.formLabel).setVisible(true);
     } else {
       this.formText.setVisible(false);
@@ -532,12 +568,8 @@ export class UIScene extends Phaser.Scene {
       const w = 520;
       const x = (VIEW.width - w) / 2;
       const y = VIEW.height - 56;
-      this.bossBar.fillStyle(0x000000, 0.5);
-      this.bossBar.fillRoundedRect(x - 4, y - 4, w + 8, 30, 8);
-      this.bossBar.fillStyle(0x3a1216, 1);
-      this.bossBar.fillRect(x, y, w, 22);
-      this.bossBar.fillStyle(0xe5484d, 1);
-      this.bossBar.fillRect(x, y, w * Phaser.Math.Clamp(this.boss.hp / this.boss.maxHp, 0, 1), 22);
+      hudPanel(this.bossBar, x - 6, y - 6, w + 12, 34);
+      hudBar(this.bossBar, x, y, w, 22, Phaser.Math.Clamp(this.boss.hp / this.boss.maxHp, 0, 1), 0xe5484d, 0x3a1216);
     } else {
       this.bossText.setVisible(false);
     }

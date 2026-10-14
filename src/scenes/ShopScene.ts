@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { VIEW } from '../config/game';
+import { paintTexture, vGradient, type Ctx } from '../systems/Paint';
 import { BOO_STOCK, BOB_STOCK, type ShopItem } from '../config/shop';
 import { loadSave, buyItem, blockedReason, hasBeatenGame, type SaveData } from '../systems/SaveSystem';
 import { play } from '../systems/SoundSystem';
@@ -34,15 +35,19 @@ export class ShopScene extends Phaser.Scene {
   create(): void {
     // A market stall: striped awning, a counter, and the merchant with their
     // llamas (Big Bob only has five real ones — the "twelve hundred" is a joke).
-    const g = this.add.graphics();
-    g.fillStyle(0x2a1d3a, 1);
-    g.fillRect(0, 0, VIEW.width, VIEW.height);
-    g.fillStyle(0x3b2a52, 1);
-    g.fillRect(0, 600, VIEW.width, VIEW.height - 600);
-    for (let x = 0; x < VIEW.width; x += 80) {
-      g.fillStyle((x / 80) % 2 ? 0xf2b134 : 0xe5484d, 1);
-      g.fillRect(x, 0, 80, 54);
-    }
+    paintTexture(this, 'bd-shop-stall', VIEW.width, VIEW.height, paintStall);
+    this.add.image(0, 0, 'bd-shop-stall').setOrigin(0, 0);
+
+    const rowTop = 160; // placeholder: not Henry's number
+    const rowGap = 36; // placeholder: not Henry's number
+
+    // Dark glass behind the shelves, so the list stays easy to read.
+    const glass = this.add.graphics();
+    const glassBottom = rowTop + this.stock.length * rowGap + 34;
+    glass.fillStyle(0x0b1020, 0.5);
+    glass.fillRoundedRect(50, 112, 780, glassBottom - 112, 16);
+    glass.lineStyle(2, 0xffffff, 0.14);
+    glass.strokeRoundedRect(51, 113, 778, glassBottom - 114, 15);
 
     if (this.merchant === 'bob') {
       for (const [lx, flip] of [
@@ -75,8 +80,6 @@ export class ShopScene extends Phaser.Scene {
       .text(440, 132, '', { fontFamily: FONT, fontSize: '22px', color: '#ffd76b' })
       .setOrigin(0.5);
 
-    const rowTop = 160; // placeholder: not Henry's number
-    const rowGap = 36; // placeholder: not Henry's number
     this.stock.forEach((item, i) => {
       const y = rowTop + i * rowGap;
       this.add.image(90, y, item.texture).setScale(0.7);
@@ -212,5 +215,75 @@ export class ShopScene extends Phaser.Scene {
         .setScale(picked ? 1.06 : 1);
     });
     this.detailText.setText(this.stock[this.selected]?.blurb ?? '');
+  }
+}
+
+/**
+ * The market stall behind the shop: a plank wall, a scalloped striped awning
+ * with a string of warm lights under it, and a wooden floor.
+ */
+function paintStall(ctx: Ctx, w: number, h: number): void {
+  const floorY = 600;
+  ctx.fillStyle = vGradient(ctx, 0, floorY, [
+    [0, '#3a2950'],
+    [1, '#241a33'],
+  ]);
+  ctx.fillRect(0, 0, w, floorY);
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  for (let x = 0; x < w; x += 64) ctx.fillRect(x, 0, 3, floorY);
+
+  // Floor planks, lit along the front edge.
+  ctx.fillStyle = vGradient(ctx, floorY, h, [
+    [0, '#5a3f72'],
+    [1, '#33244a'],
+  ]);
+  ctx.fillRect(0, floorY, w, h - floorY);
+  ctx.fillStyle = 'rgba(255,220,180,0.25)';
+  ctx.fillRect(0, floorY, w, 3);
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  for (const y of [632, 670, 704]) ctx.fillRect(0, y, w, 2);
+
+  // Awning: red and gold stripes, shaded at the top, with a scalloped hem.
+  const stripe = 80;
+  const hem = 40;
+  for (let x = 0; x < w; x += stripe) {
+    const red = (x / stripe) % 2 === 0;
+    ctx.fillStyle = vGradient(ctx, 0, hem + 14, [
+      [0, red ? '#b8323a' : '#c98a1e'],
+      [1, red ? '#ec5a5f' : '#f7c04a'],
+    ]);
+    ctx.fillRect(x, 0, stripe, hem);
+    ctx.beginPath();
+    ctx.ellipse(x + stripe / 2, hem, stripe / 2, 14, 0, 0, Math.PI);
+    ctx.fill();
+  }
+  // The shadow the awning casts on the wall.
+  ctx.fillStyle = vGradient(ctx, hem, hem + 70, [
+    [0, 'rgba(0,0,0,0.35)'],
+    [1, 'rgba(0,0,0,0)'],
+  ]);
+  ctx.globalCompositeOperation = 'destination-over';
+  ctx.fillRect(0, hem, w, 70);
+  ctx.globalCompositeOperation = 'source-over';
+
+  // A string of lights sagging between the scallops.
+  ctx.strokeStyle = '#1b1426';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = 0; x <= w; x += 4) ctx.lineTo(x, hem + 22 + Math.sin((x / 160) * Math.PI) ** 2 * 14);
+  ctx.stroke();
+  const bulbs = ['#ffe27a', '#ff9ec4', '#9fe8ff', '#b6f28a'];
+  for (let i = 0; i < 32; i++) {
+    const x = 20 + i * 40;
+    const y = hem + 26 + Math.sin((x / 160) * Math.PI) ** 2 * 14;
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, 22);
+    glow.addColorStop(0, 'rgba(255,230,160,0.35)');
+    glow.addColorStop(1, 'rgba(255,230,160,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - 22, y - 22, 44, 44);
+    ctx.fillStyle = bulbs[i % bulbs.length];
+    ctx.beginPath();
+    ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+    ctx.fill();
   }
 }

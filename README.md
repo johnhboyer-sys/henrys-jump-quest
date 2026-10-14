@@ -351,7 +351,15 @@ The brainstorm deliberately left a lot unspecified. What I chose, and why:
 - **Original boss**, named Shellcracker rather than the Nintendo character the
   kids first reached for.
 - **Art is drawn in code** (`src/scenes/BootScene.ts`), one function per texture.
-  No asset pipeline to keep in sync.
+  No asset pipeline to keep in sync. At the end of boot, `inkAll` gives the
+  cast, pickups and props a dark outline and lit/shaded rims
+  (`inkTexture` in `src/systems/Paint.ts`); add a new sprite's key there to
+  give it the same finish. Ground and platforms are dressed with turf, snow,
+  sand or crystal caps and shaded edges in `src/systems/Terrain.ts` — purely
+  visual, the physics body is still the plain slab. Backdrops
+  (`src/systems/Backdrop.ts`) are painted once per theme with the canvas 2D
+  API into tiling parallax layers; switching theme frees the old theme's
+  textures to keep memory low on phones.
 - **Sound is synthesised** (`src/systems/SoundSystem.ts`) — short WebAudio blips,
   no audio files.
 - **Fixed 1280x720, scaled to fit.** `Scale.RESIZE` misbehaves in embedded panes.

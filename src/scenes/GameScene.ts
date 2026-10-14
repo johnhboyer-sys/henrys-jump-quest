@@ -32,6 +32,7 @@ import { createBoss, type BossBase, type HitSource } from '../entities/bosses';
 import { createEnemy, Enemy, type EnemyWorld } from '../entities/enemies';
 import type { EnemyKind } from '../config/enemies';
 import { buildBackdrop } from '../systems/Backdrop';
+import { dressSlab, surfaceLook } from '../systems/Terrain';
 import { SKINS, RAIDER_SWORD_FRACTION, PRIMROSE_SHOT_DAMAGE, isGodSkin, type AttackKind } from '../config/skins';
 import {
   recordLevelClear,
@@ -313,28 +314,19 @@ export class GameScene extends Phaser.Scene implements EnemyWorld {
   }
 
   /** Ground and platforms take the look of the level's theme; ice is always ice. */
-  private surfaceTexture(kind: PlatformDef['kind']): string {
-    if (kind === 'ice') return 'tile-ice';
-    const suffix =
-      this.level.theme === 'ice'
-        ? '-snow'
-        : this.level.theme === 'shore'
-          ? '-sand'
-          : this.level.theme === 'galactic'
-            ? '-star'
-            : '';
-    return (kind === 'ground' ? 'tile-ground' : 'tile-platform') + suffix;
-  }
-
   private addPlatform(def: PlatformDef): void {
-    const texture = this.surfaceTexture(def.kind);
+    const look = surfaceLook(this.level.theme, def.kind);
+    const depth = def.kind === 'ground' ? 2 : 3;
 
-    const slab = this.add.tileSprite(def.x, def.y, def.w, def.h, texture).setOrigin(0, 0);
-    slab.setDepth(def.kind === 'ground' ? 2 : 3);
+    const slab = this.add.tileSprite(def.x, def.y, def.w, def.h, look.fill).setOrigin(0, 0);
+    // Line the pattern up with the world, so neighbouring slabs match.
+    slab.setTilePosition(def.x, def.y);
+    slab.setDepth(depth);
     this.solids.add(slab);
     (slab.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
 
     if (def.kind === 'ice') this.iceSurfaces.add(slab);
+    dressSlab(this, def, look, depth);
   }
 
   private wireCollisions(): void {
