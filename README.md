@@ -13,6 +13,9 @@ npm run dev
 
 Then open the URL Vite prints. `npm run build` type-checks and bundles to `dist/`.
 
+Netlify builds the site from GitHub using `netlify.toml`: it runs `npm run build`
+and publishes `dist/`.
+
 To play on a phone or iPad over your home Wi-Fi, run `npm run dev -- --host`
 and open the "Network" URL it prints on the device instead of `localhost`.
 
