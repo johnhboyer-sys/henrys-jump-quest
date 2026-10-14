@@ -1,0 +1,15 @@
+# Netlify builds the game from GitHub on every push to the production branch.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Vite 8 needs Node 20.19+ or 22.12+.
+  NODE_VERSION = "22"
+
+# Vite puts a content hash in every file name under assets/, so a changed
+# file always gets a new name and browsers can keep these forever.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
